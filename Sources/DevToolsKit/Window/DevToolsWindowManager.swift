@@ -11,7 +11,9 @@ public final class DevToolsWindowManager {
 
     public init() {}
 
-    /// Open a panel as a standalone window.
+    /// Open a panel as a standalone window, or bring it to front if already open.
+    ///
+    /// - Parameter panel: The panel to display.
     public func open(panel: any DevToolPanel) {
         if let existing = windows[panel.id], existing.isVisible {
             existing.makeKeyAndOrderFront(nil)

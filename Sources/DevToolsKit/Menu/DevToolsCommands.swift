@@ -15,6 +15,11 @@ public struct DevToolsCommands: Commands {
     private let tabbedWindow: DevToolsTabbedWindow
     private let onExportDiagnostics: (() -> Void)?
 
+    /// - Parameters:
+    ///   - manager: The shared DevToolsManager.
+    ///   - windowManager: Manager for standalone panel windows; a default is created if omitted.
+    ///   - tabbedWindow: Manager for the shared tabbed window; a default is created if omitted.
+    ///   - onExportDiagnostics: Optional custom export handler; if `nil`, the built-in exporter is used.
     public init(
         manager: DevToolsManager,
         windowManager: DevToolsWindowManager = DevToolsWindowManager(),

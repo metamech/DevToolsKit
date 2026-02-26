@@ -8,6 +8,10 @@ public struct DiagnosticExporter {
     private let logStore: DevToolsLogStore?
     private let appName: String
 
+    /// - Parameters:
+    ///   - manager: The manager whose providers and settings are included in the report.
+    ///   - logStore: Optional log store; if provided, recent entries are included.
+    ///   - appName: App name for the report; defaults to `CFBundleName`.
     public init(
         manager: DevToolsManager,
         logStore: DevToolsLogStore? = nil,

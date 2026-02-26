@@ -1,10 +1,19 @@
 import SwiftUI
 
 /// Keyboard shortcut definition for a dev tool panel.
+///
+/// Used by ``DevToolPanel/keyboardShortcut`` to assign a global shortcut
+/// that opens the panel from the Developer menu.
 public struct DevToolsKeyboardShortcut: Sendable {
+    /// The key character (e.g., `"l"` for ⌘⌥L).
     public let key: Character
+
+    /// Modifier keys. Defaults to `[.command, .option]`.
     public let modifiers: EventModifiers
 
+    /// - Parameters:
+    ///   - key: The key character for the shortcut.
+    ///   - modifiers: Modifier keys; defaults to Command+Option.
     public init(key: Character, modifiers: EventModifiers = [.command, .option]) {
         self.key = key
         self.modifiers = modifiers

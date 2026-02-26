@@ -1,3 +1,5 @@
+[< Performance Panel](DEVELOPER_GUIDE_05_PERFORMANCE_PANEL.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Diagnostic Export >](DEVELOPER_GUIDE_07_DIAGNOSTIC_EXPORT.md)
+
 # Developer Guide: Data Inspector & Environment Panel
 
 ## Data Inspector
@@ -79,3 +81,7 @@ devTools.register(EnvironmentPanel())
 - Manual refresh button
 - Copy to clipboard button (plain text format)
 - Monospaced two-column layout (key: value)
+
+---
+
+[< Performance Panel](DEVELOPER_GUIDE_05_PERFORMANCE_PANEL.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Diagnostic Export >](DEVELOPER_GUIDE_07_DIAGNOSTIC_EXPORT.md)

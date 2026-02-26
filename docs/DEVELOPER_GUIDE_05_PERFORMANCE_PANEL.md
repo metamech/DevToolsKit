@@ -1,3 +1,5 @@
+[< Log Panel](DEVELOPER_GUIDE_04_LOG_PANEL.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Data & Environment >](DEVELOPER_GUIDE_06_DATA_ENVIRONMENT.md)
+
 # Developer Guide: Performance Panel
 
 The Performance Dashboard displays metric cards grouped by category, fed by your `MetricsProvider` implementation.
@@ -40,3 +42,7 @@ struct MyMetricsProvider: MetricsProvider {
 - Metrics within a group displayed as horizontal cards
 - Manual "Refresh" button calls `currentMetrics()` on each press
 - Data loads on panel appear and clears on disappear
+
+---
+
+[< Log Panel](DEVELOPER_GUIDE_04_LOG_PANEL.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Data & Environment >](DEVELOPER_GUIDE_06_DATA_ENVIRONMENT.md)

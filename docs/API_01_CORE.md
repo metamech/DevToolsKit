@@ -1,3 +1,5 @@
+[< Overview](API_00_OVERVIEW.md) | [Index](API_00_OVERVIEW.md) | [Logging >](API_02_LOGGING.md)
+
 # API Reference: Core
 
 > Source: `Sources/DevToolsKit/Core/`
@@ -115,3 +117,7 @@ extension View {
     public func environment(_ manager: DevToolsManager) -> some View
 }
 ```
+
+---
+
+[< Overview](API_00_OVERVIEW.md) | [Index](API_00_OVERVIEW.md) | [Logging >](API_02_LOGGING.md)

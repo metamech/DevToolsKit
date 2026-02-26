@@ -1,3 +1,5 @@
+[< Inspector & Environment](API_04_INSPECTOR_ENVIRONMENT.md) | [Index](API_00_OVERVIEW.md) | [Window, Menu & Modifiers >](API_06_WINDOW_MENU_MODIFIERS.md)
+
 # API Reference: Export
 
 > Source: `Sources/DevToolsKit/Export/`
@@ -96,3 +98,7 @@ public struct AnyCodable: Codable, Sendable {
 ```
 
 Type-erased Codable wrapper used for heterogeneous custom sections in `DiagnosticReport`.
+
+---
+
+[< Inspector & Environment](API_04_INSPECTOR_ENVIRONMENT.md) | [Index](API_00_OVERVIEW.md) | [Window, Menu & Modifiers >](API_06_WINDOW_MENU_MODIFIERS.md)

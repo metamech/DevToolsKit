@@ -1,3 +1,5 @@
+[< Overview](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Panel System >](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md)
+
 # Developer Guide: Quick Start
 
 Add DevToolsKit to your macOS SwiftUI app in four steps.
@@ -61,7 +63,6 @@ The `.devToolsDock(_:)` modifier wraps your content in a split view. When the do
 
 Run your app, open the Developer menu (or press ⌘⌥L), and you should see the Log Viewer panel.
 
-## Next Steps
+---
 
-- [Panel System](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md) — Create custom panels
-- [Window Modes](DEVELOPER_GUIDE_03_WINDOW_MODES.md) — Standalone, tabbed, docked
+[< Overview](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Panel System >](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md)

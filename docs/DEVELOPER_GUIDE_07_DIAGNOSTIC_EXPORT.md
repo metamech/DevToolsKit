@@ -1,3 +1,5 @@
+[< Data & Environment](DEVELOPER_GUIDE_06_DATA_ENVIRONMENT.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Menu Integration >](DEVELOPER_GUIDE_08_MENU_INTEGRATION.md)
+
 # Developer Guide: Diagnostic Export
 
 Export a comprehensive JSON diagnostic report containing hardware info, developer settings, recent logs, and app-specific custom sections.
@@ -82,3 +84,7 @@ DevToolsCommands(manager: devTools, onExportDiagnostics: {
 - `DiagnosticReport` — Codable report structure with nested types
 - `DiagnosticExporter` — Orchestrates collection and NSSavePanel flow
 - `AnyCodable` — Type-erased Codable wrapper for heterogeneous sections
+
+---
+
+[< Data & Environment](DEVELOPER_GUIDE_06_DATA_ENVIRONMENT.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Menu Integration >](DEVELOPER_GUIDE_08_MENU_INTEGRATION.md)

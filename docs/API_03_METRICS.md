@@ -1,3 +1,5 @@
+[< Logging](API_02_LOGGING.md) | [Index](API_00_OVERVIEW.md) | [Inspector & Environment >](API_04_INSPECTOR_ENVIRONMENT.md)
+
 # API Reference: Metrics
 
 > Source: `Sources/DevToolsKit/Panels/PerformancePanel/`
@@ -75,3 +77,7 @@ public struct PerformancePanelView: View {
 ```
 
 Metric card grid with manual refresh button. Loads data on appear.
+
+---
+
+[< Logging](API_02_LOGGING.md) | [Index](API_00_OVERVIEW.md) | [Inspector & Environment >](API_04_INSPECTOR_ENVIRONMENT.md)

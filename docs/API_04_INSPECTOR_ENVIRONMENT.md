@@ -1,3 +1,5 @@
+[< Metrics](API_03_METRICS.md) | [Index](API_00_OVERVIEW.md) | [Export >](API_05_EXPORT.md)
+
 # API Reference: Inspector & Environment
 
 > Source: `Sources/DevToolsKit/Panels/DataInspectorPanel/`, `Sources/DevToolsKit/Panels/EnvironmentPanel/`
@@ -62,3 +64,7 @@ public struct EnvironmentPanelView: View {
 ```
 
 Two-column key-value table with refresh and copy-to-clipboard. Displays macOS version, hardware, memory, thermal state, app metadata, and more.
+
+---
+
+[< Metrics](API_03_METRICS.md) | [Index](API_00_OVERVIEW.md) | [Export >](API_05_EXPORT.md)

@@ -1,3 +1,5 @@
+[< Testing](DEVELOPER_GUIDE_09_TESTING.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md)
+
 # Developer Guide: AI Prompts
 
 Recommended prompts for AI coding assistants (Claude Code, GitHub Copilot, etc.) when working with DevToolsKit.
@@ -31,3 +33,7 @@ Recommended prompts for AI coding assistants (Claude Code, GitHub Copilot, etc.)
 > "Log entries aren't appearing."
 >
 > Check: (1) `LoggingSystem.bootstrap` was called before any `Logger` usage, (2) the `DevToolsLogHandler` was given the same `DevToolsLogStore` instance as the `LogPanel`, (3) the filter level isn't set higher than the log level of the entries.
+
+---
+
+[< Testing](DEVELOPER_GUIDE_09_TESTING.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md)

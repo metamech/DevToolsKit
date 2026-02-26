@@ -53,8 +53,27 @@ Sources/DevToolsKit/
 └── Export/             # DiagnosticProvider, DiagnosticReport, exporter
 ```
 
-## Next Steps
+## Table of Contents
 
-- [Quick Start](DEVELOPER_GUIDE_01_QUICK_START.md) — Add DevToolsKit to your app in 4 steps
-- [Panel System](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md) — Create custom panels
-- [API Reference](API_01_CORE.md) — Full type signatures
+| # | Chapter | Description |
+|---|---------|-------------|
+| 0 | **Overview** (this document) | Architecture, key concepts, directory layout |
+| 1 | [Quick Start](DEVELOPER_GUIDE_01_QUICK_START.md) | Add DevToolsKit to your app in 4 steps |
+| 2 | [Panel System](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md) | `DevToolPanel` protocol, custom panels, shortcuts |
+| 3 | [Window Modes](DEVELOPER_GUIDE_03_WINDOW_MODES.md) | Standalone, tabbed, docked — behavior and transitions |
+| 4 | [Log Panel](DEVELOPER_GUIDE_04_LOG_PANEL.md) | Log Viewer, `DevToolsLogStore`, swift-log integration |
+| 5 | [Performance Panel](DEVELOPER_GUIDE_05_PERFORMANCE_PANEL.md) | `MetricsProvider`, metric groups, dashboard UI |
+| 6 | [Data & Environment](DEVELOPER_GUIDE_06_DATA_ENVIRONMENT.md) | Data Inspector, Environment panel |
+| 7 | [Diagnostic Export](DEVELOPER_GUIDE_07_DIAGNOSTIC_EXPORT.md) | `DiagnosticProvider`, report structure, export flow |
+| 8 | [Menu Integration](DEVELOPER_GUIDE_08_MENU_INTEGRATION.md) | `DevToolsCommands`, Developer menu |
+| 9 | [Testing](DEVELOPER_GUIDE_09_TESTING.md) | Testing with DevToolsKit, mock panels, key prefix isolation |
+| 10 | [AI Prompts](DEVELOPER_GUIDE_10_AI_PROMPTS.md) | Recommended prompts for AI coding assistants |
+
+## Related
+
+- [API Reference](API_00_OVERVIEW.md) — Full type signatures and declarations
+- [README](../README.md) — Quick start and feature overview
+
+---
+
+Next: [Quick Start](DEVELOPER_GUIDE_01_QUICK_START.md)

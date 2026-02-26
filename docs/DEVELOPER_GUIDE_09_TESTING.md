@@ -1,3 +1,5 @@
+[< Menu Integration](DEVELOPER_GUIDE_08_MENU_INTEGRATION.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [AI Prompts >](DEVELOPER_GUIDE_10_AI_PROMPTS.md)
+
 # Developer Guide: Testing
 
 ## Testing Code That Uses DevToolsKit
@@ -88,3 +90,7 @@ struct MockPanel: DevToolPanel {
 ```bash
 swift test --package-path DevToolsKit
 ```
+
+---
+
+[< Menu Integration](DEVELOPER_GUIDE_08_MENU_INTEGRATION.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [AI Prompts >](DEVELOPER_GUIDE_10_AI_PROMPTS.md)

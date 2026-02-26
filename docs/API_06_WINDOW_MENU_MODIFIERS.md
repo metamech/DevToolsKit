@@ -1,3 +1,5 @@
+[< Export](API_05_EXPORT.md) | [Index](API_00_OVERVIEW.md)
+
 # API Reference: Window, Menu & Modifiers
 
 > Source: `Sources/DevToolsKit/Window/`, `Sources/DevToolsKit/Menu/`, `Sources/DevToolsKit/Modifiers/`
@@ -59,3 +61,7 @@ extension View {
 ```
 
 View modifier that wraps content in a resizable split view (HSplitView or VSplitView) when `manager.isDockVisible` is true. Dock position is controlled by `manager.dockPosition`. When the dock is hidden, the modifier passes through the content unchanged.
+
+---
+
+[< Export](API_05_EXPORT.md) | [Index](API_00_OVERVIEW.md)

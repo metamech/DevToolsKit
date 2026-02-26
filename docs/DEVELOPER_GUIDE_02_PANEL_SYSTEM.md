@@ -1,3 +1,5 @@
+[< Quick Start](DEVELOPER_GUIDE_01_QUICK_START.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Window Modes >](DEVELOPER_GUIDE_03_WINDOW_MODES.md)
+
 # Developer Guide: Panel System
 
 ## The DevToolPanel Protocol
@@ -69,3 +71,7 @@ DevToolsKeyboardShortcut(key: "a", modifiers: [.command, .shift])
 - `closePanel(_:)` — Close across all display modes
 - `movePanel(_:to:)` — Close and reopen in a different display mode
 - `unregister(panelID:)` — Remove from registry and clear persisted preferences
+
+---
+
+[< Quick Start](DEVELOPER_GUIDE_01_QUICK_START.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Window Modes >](DEVELOPER_GUIDE_03_WINDOW_MODES.md)

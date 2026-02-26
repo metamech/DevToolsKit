@@ -1,3 +1,5 @@
+[< Core](API_01_CORE.md) | [Index](API_00_OVERVIEW.md) | [Metrics >](API_03_METRICS.md)
+
 # API Reference: Logging
 
 > Source: `Sources/DevToolsKit/Panels/LogPanel/`
@@ -87,3 +89,7 @@ public struct LogPanelView: View {
 ```
 
 Filterable log viewer UI with toolbar, level filter, source picker, search, auto-scroll, and clear.
+
+---
+
+[< Core](API_01_CORE.md) | [Index](API_00_OVERVIEW.md) | [Metrics >](API_03_METRICS.md)

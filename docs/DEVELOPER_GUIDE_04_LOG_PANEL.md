@@ -1,3 +1,5 @@
+[< Window Modes](DEVELOPER_GUIDE_03_WINDOW_MODES.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Performance Panel >](DEVELOPER_GUIDE_05_PERFORMANCE_PANEL.md)
+
 # Developer Guide: Log Panel
 
 The Log Viewer panel displays a filterable, searchable stream of log entries.
@@ -62,3 +64,7 @@ The panel provides:
 - Auto-scroll toggle
 - Clear button
 - Monospaced font with color-coded level badges
+
+---
+
+[< Window Modes](DEVELOPER_GUIDE_03_WINDOW_MODES.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Performance Panel >](DEVELOPER_GUIDE_05_PERFORMANCE_PANEL.md)

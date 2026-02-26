@@ -1,3 +1,5 @@
+[< Diagnostic Export](DEVELOPER_GUIDE_07_DIAGNOSTIC_EXPORT.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Testing >](DEVELOPER_GUIDE_09_TESTING.md)
+
 # Developer Guide: Menu Integration
 
 `DevToolsCommands` generates a "Developer" menu that provides keyboard-shortcut access to all registered panels.
@@ -65,3 +67,7 @@ Show the Developer menu only when developer mode is enabled:
     }
 }
 ```
+
+---
+
+[< Diagnostic Export](DEVELOPER_GUIDE_07_DIAGNOSTIC_EXPORT.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Testing >](DEVELOPER_GUIDE_09_TESTING.md)

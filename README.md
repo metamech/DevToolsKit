@@ -136,7 +136,7 @@ Or in Xcode: File > Add Package Dependencies, paste the URL.
 ## Documentation
 
 - [Developer Guide](docs/DEVELOPER_GUIDE_00_OVERVIEW.md) — Architecture, quick start, and deep dives
-- [API Reference](docs/API_01_CORE.md) — Full type signatures and descriptions
+- [API Reference](docs/API_00_OVERVIEW.md) — Full type signatures and descriptions
 - [Contributing](docs/CONTRIBUTING.md) — How to build, test, and submit changes
 - [AI Instructions](docs/CLAUDE.md) — Claude Code / Copilot integration guide
 

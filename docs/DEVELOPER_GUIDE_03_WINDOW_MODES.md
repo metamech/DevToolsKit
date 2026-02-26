@@ -1,3 +1,5 @@
+[< Panel System](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Log Panel >](DEVELOPER_GUIDE_04_LOG_PANEL.md)
+
 # Developer Guide: Window Modes
 
 Each panel can be displayed in one of three modes. The mode is persisted per-panel to `UserDefaults`.
@@ -57,3 +59,7 @@ devTools.movePanel("devtools.log", to: .docked)
 ```
 
 This closes the panel in its current mode and reopens it in the target mode.
+
+---
+
+[< Panel System](DEVELOPER_GUIDE_02_PANEL_SYSTEM.md) | [Index](DEVELOPER_GUIDE_00_OVERVIEW.md) | [Log Panel >](DEVELOPER_GUIDE_04_LOG_PANEL.md)

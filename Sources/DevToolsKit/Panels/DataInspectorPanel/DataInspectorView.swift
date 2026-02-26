@@ -7,11 +7,21 @@ public struct DataInspectorView: View {
 
     @State private var expandedPaths: Set<String> = []
 
+    /// Create an inspector for any JSON-compatible value.
+    ///
+    /// - Parameters:
+    ///   - title: Heading displayed above the tree.
+    ///   - json: The data to inspect (dictionary, array, or primitive).
     public init(title: String = "Data", json: Any) {
         self.title = title
         self.data = json
     }
 
+    /// Create an inspector for a string-keyed dictionary.
+    ///
+    /// - Parameters:
+    ///   - title: Heading displayed above the tree.
+    ///   - dictionary: The dictionary to inspect.
     public init(title: String = "Data", dictionary: [String: Any]) {
         self.title = title
         self.data = dictionary

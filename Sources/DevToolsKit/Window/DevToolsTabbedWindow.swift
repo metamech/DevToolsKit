@@ -9,7 +9,9 @@ public final class DevToolsTabbedWindow {
 
     public init() {}
 
-    /// Open (or bring to front) the tabbed window.
+    /// Open (or bring to front) the shared tabbed window.
+    ///
+    /// - Parameter manager: The shared DevToolsManager that owns the panel registry.
     public func open(manager: DevToolsManager) {
         self.manager = manager
 

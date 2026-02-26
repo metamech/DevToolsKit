@@ -59,13 +59,20 @@ public final class DevToolsManager: Sendable {
     /// Display mode per panel (persisted).
     public private(set) var panelDisplayModes: [String: PanelDisplayMode] = [:]
 
-    /// Set the display mode for a panel.
+    /// Set the display mode for a panel and persist it to UserDefaults.
+    ///
+    /// - Parameters:
+    ///   - mode: The desired display mode.
+    ///   - panelID: The panel's stable identifier.
     public func setDisplayMode(_ mode: PanelDisplayMode, for panelID: String) {
         panelDisplayModes[panelID] = mode
         UserDefaults.standard.set(mode.rawValue, forKey: key("panelMode.\(panelID)"))
     }
 
-    /// Get the display mode for a panel.
+    /// Get the display mode for a panel, falling back to `.standalone`.
+    ///
+    /// - Parameter panelID: The panel's stable identifier.
+    /// - Returns: The persisted or default display mode.
     public func displayMode(for panelID: String) -> PanelDisplayMode {
         if let mode = panelDisplayModes[panelID] {
             return mode
@@ -154,6 +161,9 @@ public final class DevToolsManager: Sendable {
 
     // MARK: - Init
 
+    /// Create a manager with a UserDefaults key prefix for state isolation.
+    ///
+    /// - Parameter keyPrefix: Prefix for all persisted keys (e.g., `"myapp"`).
     public init(keyPrefix: String) {
         self.keyPrefix = keyPrefix
         loadPersistedPanelModes()
@@ -161,33 +171,44 @@ public final class DevToolsManager: Sendable {
 
     // MARK: - Panel Registration
 
-    /// Register a panel with the manager.
+    /// Register a panel. Duplicate IDs are silently ignored.
+    ///
+    /// - Parameter panel: The panel to register.
     public func register(_ panel: any DevToolPanel) {
         guard !panels.contains(where: { $0.id == panel.id }) else { return }
         panels.append(panel)
     }
 
-    /// Unregister a panel by ID.
+    /// Remove a panel by its ID and clear its persisted display mode.
+    ///
+    /// - Parameter panelID: The panel's stable identifier.
     public func unregister(panelID: String) {
         panels.removeAll { $0.id == panelID }
         panelDisplayModes.removeValue(forKey: panelID)
     }
 
-    /// Find a registered panel by ID.
+    /// Look up a registered panel by its stable identifier.
+    ///
+    /// - Parameter id: The panel ID to search for.
+    /// - Returns: The panel, or `nil` if not registered.
     public func panel(for id: String) -> (any DevToolPanel)? {
         panels.first { $0.id == id }
     }
 
     // MARK: - Diagnostic Provider Registration
 
-    /// Register a diagnostic provider.
+    /// Register a diagnostic provider for export.
+    ///
+    /// - Parameter provider: The provider whose `collect()` will be called during export.
     public func registerDiagnosticProvider(_ provider: any DiagnosticProvider) {
         diagnosticProviders.append(provider)
     }
 
     // MARK: - Panel Actions
 
-    /// Open a panel in its current display mode.
+    /// Open a panel in its current display mode (standalone, tabbed, or docked).
+    ///
+    /// - Parameter panelID: The panel's stable identifier.
     public func openPanel(_ panelID: String) {
         let mode = displayMode(for: panelID)
         switch mode {
@@ -202,7 +223,9 @@ public final class DevToolsManager: Sendable {
         }
     }
 
-    /// Close a panel.
+    /// Close a panel across all display modes.
+    ///
+    /// - Parameter panelID: The panel's stable identifier.
     public func closePanel(_ panelID: String) {
         openStandalonePanelIDs.remove(panelID)
         if activeTabbedPanelID == panelID {
@@ -213,7 +236,11 @@ public final class DevToolsManager: Sendable {
         }
     }
 
-    /// Move a panel to a different display mode.
+    /// Close a panel and reopen it in a different display mode.
+    ///
+    /// - Parameters:
+    ///   - panelID: The panel's stable identifier.
+    ///   - mode: The target display mode.
     public func movePanel(_ panelID: String, to mode: PanelDisplayMode) {
         closePanel(panelID)
         setDisplayMode(mode, for: panelID)

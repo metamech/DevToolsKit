@@ -1,6 +1,9 @@
 import SwiftUI
 
-/// Built-in data inspector panel for viewing JSON/key-value data.
+/// Built-in panel for viewing JSON or key-value data as a collapsible tree.
+///
+/// Useful for inspecting configuration, API responses, or any structured data.
+/// Multiple instances can coexist with different IDs.
 public struct DataInspectorPanel: DevToolPanel {
     public let id: String
     public let title: String
@@ -12,6 +15,12 @@ public struct DataInspectorPanel: DevToolPanel {
     private let data: Any
     private let dataTitle: String
 
+    /// - Parameters:
+    ///   - id: Stable panel identifier; defaults to `"devtools.data-inspector"`.
+    ///   - title: Menu/tab title; defaults to `"Data Inspector"`.
+    ///   - dataTitle: Heading shown inside the inspector view.
+    ///   - data: The data to inspect (dictionary, array, or JSON-compatible value).
+    ///   - keyboardShortcut: Optional keyboard shortcut.
     public init(
         id: String = "devtools.data-inspector",
         title: String = "Data Inspector",

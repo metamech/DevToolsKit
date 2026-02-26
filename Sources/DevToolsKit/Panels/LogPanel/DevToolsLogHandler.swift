@@ -20,6 +20,9 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
     private let label: String
     private let store: DevToolsLogStore
 
+    /// - Parameters:
+    ///   - label: The logger label (used as the entry's `source`).
+    ///   - store: The shared log store to append entries to.
     public init(label: String, store: DevToolsLogStore) {
         self.label = label
         self.store = store

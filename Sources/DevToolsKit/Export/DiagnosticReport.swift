@@ -1,6 +1,9 @@
 import Foundation
 
-/// Complete diagnostic report structure.
+/// Complete diagnostic report structure, serialized as pretty-printed JSON on export.
+///
+/// Contains hardware info, developer settings, recent log entries, and
+/// any custom sections contributed by ``DiagnosticProvider`` implementations.
 public struct DiagnosticReport: Codable, Sendable {
     public let appName: String
     public let appVersion: String
@@ -11,6 +14,7 @@ public struct DiagnosticReport: Codable, Sendable {
     public let customSections: [String: AnyCodable]
     public let timestamp: Date
 
+    /// Hardware information snapshot included in the diagnostic report.
     public struct HardwareInfo: Codable, Sendable {
         public let model: String
         public let chipArchitecture: String
@@ -25,6 +29,7 @@ public struct DiagnosticReport: Codable, Sendable {
         }
     }
 
+    /// Snapshot of developer settings at export time.
     public struct DeveloperSettingsSnapshot: Codable, Sendable {
         public let isDeveloperMode: Bool
         public let logLevel: String
@@ -35,6 +40,7 @@ public struct DiagnosticReport: Codable, Sendable {
         }
     }
 
+    /// Codable snapshot of a single log entry for the diagnostic report.
     public struct LogEntrySnapshot: Codable, Sendable {
         public let timestamp: Date
         public let level: String
@@ -70,10 +76,14 @@ public struct DiagnosticReport: Codable, Sendable {
     }
 }
 
-/// Type-erased Codable wrapper for custom diagnostic sections.
+/// Type-erased `Codable` wrapper for heterogeneous custom diagnostic sections.
+///
+/// Used internally by ``DiagnosticExporter`` to encode provider output without
+/// losing type safety at the encoding boundary.
 public struct AnyCodable: Codable, Sendable {
     private let encodeClosure: @Sendable (Encoder) throws -> Void
 
+    /// Wrap any `Codable & Sendable` value for type-erased encoding.
     public init(_ value: some Codable & Sendable) {
         self.encodeClosure = { encoder in
             try value.encode(to: encoder)

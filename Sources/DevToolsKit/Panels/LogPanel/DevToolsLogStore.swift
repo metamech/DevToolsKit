@@ -1,15 +1,27 @@
 import Foundation
 import Observation
 
-/// A single log entry in the DevTools log store.
+/// A single log entry captured by the DevTools log store.
 public struct DevToolsLogEntry: Identifiable, Sendable {
+    /// Unique identifier for this entry.
     public let id: UUID
+    /// When the entry was created.
     public let timestamp: Date
+    /// Severity level.
     public let level: DevToolsLogLevel
+    /// Logger label or subsystem name.
     public let source: String
+    /// The log message text.
     public let message: String
+    /// Optional key-value metadata string (e.g., `"requestID=abc traceID=123"`).
     public let metadata: String?
 
+    /// - Parameters:
+    ///   - level: Severity level.
+    ///   - source: Logger label or subsystem name.
+    ///   - message: The log message text.
+    ///   - metadata: Optional metadata string.
+    ///   - timestamp: Entry timestamp; defaults to now.
     public init(
         level: DevToolsLogLevel,
         source: String,
@@ -59,6 +71,7 @@ public final class DevToolsLogStore: Sendable {
     /// Maximum number of entries before FIFO trimming.
     public let maxEntries: Int
 
+    /// - Parameter maxEntries: FIFO capacity; oldest entries are trimmed when exceeded. Defaults to 5000.
     public init(maxEntries: Int = 5000) {
         self.maxEntries = maxEntries
     }
@@ -76,7 +89,10 @@ public final class DevToolsLogStore: Sendable {
         entries.removeAll()
     }
 
-    /// Get the most recent N entries.
+    /// Get the most recent entries (used by diagnostic export).
+    ///
+    /// - Parameter count: Maximum number of entries to return; defaults to 100.
+    /// - Returns: The last `count` entries in chronological order.
     public func recentEntries(_ count: Int = 100) -> [DevToolsLogEntry] {
         Array(entries.suffix(count))
     }

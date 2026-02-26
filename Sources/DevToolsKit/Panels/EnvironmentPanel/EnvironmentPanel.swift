@@ -1,6 +1,9 @@
 import SwiftUI
 
-/// Built-in environment information panel.
+/// Built-in panel that displays system and app environment information.
+///
+/// Shows macOS version, hardware model, memory, processor count, thermal state,
+/// app version, and more. Opens with shortcut ⌘⌥E. Requires no configuration.
 public struct EnvironmentPanel: DevToolPanel {
     public let id = "devtools.environment"
     public let title = "Environment"

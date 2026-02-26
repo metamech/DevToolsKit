@@ -1,6 +1,13 @@
 import SwiftUI
 
-/// Built-in log viewer panel.
+/// Built-in log viewer panel that displays entries from a ``DevToolsLogStore``.
+///
+/// Opens with shortcut ⌘⌥L. Register with a shared log store instance:
+///
+/// ```swift
+/// let logStore = DevToolsLogStore()
+/// manager.register(LogPanel(logStore: logStore))
+/// ```
 public struct LogPanel: DevToolPanel {
     public let id = "devtools.log"
     public let title = "Log Viewer"
@@ -11,6 +18,7 @@ public struct LogPanel: DevToolPanel {
 
     private let logStore: DevToolsLogStore
 
+    /// - Parameter logStore: The shared log store to display entries from.
     public init(logStore: DevToolsLogStore) {
         self.logStore = logStore
     }

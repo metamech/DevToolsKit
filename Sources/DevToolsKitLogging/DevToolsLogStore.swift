@@ -1,6 +1,6 @@
+import DevToolsKit
 import Foundation
 import Observation
-import DevToolsKit
 
 /// Aggregates log entries into a unified, filterable stream with FIFO capacity management.
 @MainActor

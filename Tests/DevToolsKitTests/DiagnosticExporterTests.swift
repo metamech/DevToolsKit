@@ -1,11 +1,11 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import DevToolsKit
 
 @Suite(.serialized)
 @MainActor
 struct DiagnosticExporterTests {
-
     struct TestProvider: DiagnosticProvider {
         let sectionName: String
         let data: String

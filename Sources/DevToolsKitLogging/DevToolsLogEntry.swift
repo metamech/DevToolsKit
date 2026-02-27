@@ -1,5 +1,5 @@
-import Foundation
 import DevToolsKit
+import Foundation
 
 /// A single log entry captured by the DevTools log store.
 public struct DevToolsLogEntry: Identifiable, Sendable {

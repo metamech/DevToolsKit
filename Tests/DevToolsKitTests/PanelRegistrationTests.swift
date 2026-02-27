@@ -1,11 +1,11 @@
-import Testing
 import SwiftUI
+import Testing
+
 @testable import DevToolsKit
 
 @Suite(.serialized)
 @MainActor
 struct PanelRegistrationTests {
-
     struct MockPanel: DevToolPanel {
         let id: String
         let title: String

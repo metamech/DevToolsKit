@@ -78,7 +78,8 @@ public final class DevToolsManager: Sendable {
             return mode
         }
         if let raw = UserDefaults.standard.string(forKey: key("panelMode.\(panelID)")),
-           let mode = PanelDisplayMode(rawValue: raw) {
+            let mode = PanelDisplayMode(rawValue: raw)
+        {
             panelDisplayModes[panelID] = mode
             return mode
         }

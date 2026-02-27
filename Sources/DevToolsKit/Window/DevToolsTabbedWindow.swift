@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Manages a single tabbed window that shows multiple panels with a tab bar.
 @MainActor
@@ -117,7 +117,8 @@ struct DevToolsTabbedContentView: View {
     @ViewBuilder
     private var panelContent: some View {
         if let activeID = manager.activeTabbedPanelID,
-           let panel = manager.panel(for: activeID) {
+            let panel = manager.panel(for: activeID)
+        {
             panel.makeBody()
         } else if let firstPanel = tabbedPanels.first {
             firstPanel.makeBody()

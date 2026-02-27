@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 /// Collects diagnostic data from all registered providers and exports as JSON.
 @MainActor
@@ -19,7 +19,8 @@ public struct DiagnosticExporter {
     ) {
         self.manager = manager
         self.logProvider = logProvider
-        self.appName = appName
+        self.appName =
+            appName
             ?? Bundle.main.infoDictionary?["CFBundleName"] as? String
             ?? "app"
     }
@@ -33,7 +34,8 @@ public struct DiagnosticExporter {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
         guard let data = try? encoder.encode(report),
-              let json = String(data: data, encoding: .utf8) else {
+            let json = String(data: data, encoding: .utf8)
+        else {
             showError("Failed to serialize diagnostic report.")
             return
         }

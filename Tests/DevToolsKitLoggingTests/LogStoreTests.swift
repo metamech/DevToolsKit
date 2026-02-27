@@ -1,11 +1,11 @@
-import Testing
 import DevToolsKit
+import Testing
+
 @testable import DevToolsKitLogging
 
 @Suite(.serialized)
 @MainActor
 struct LogStoreTests {
-
     @Test func appendEntry() {
         let store = DevToolsLogStore()
 

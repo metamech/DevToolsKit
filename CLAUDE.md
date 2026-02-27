@@ -8,12 +8,16 @@ Platform: macOS 15+, Swift 6, strict concurrency.
 Multi-product package:
 - **DevToolsKit** — core (no external deps): panels, manager, export, window/menu
 - **DevToolsKitLogging** — logging (depends on DevToolsKit + swift-log): log store, handler, panel
+- **DevToolsKitMetrics** — metrics (depends on DevToolsKit + swift-metrics): storage, query, factory, panel
+- **DevToolsKitLicensing** — feature flags & licensing (depends on DevToolsKit + swift-metrics): flags, experiments, license gating, panel
+- **DevToolsKitLicensingSeat** — LicenseSeat backend (depends on DevToolsKitLicensing + licenseseat-swift)
+- **DevToolsKitLicensingStoreKit** — StoreKit backend (depends on DevToolsKitLicensing)
 
 ## Build & Test
 
 ```bash
-swift build            # both targets
-swift test             # 35 tests in 5 suites
+swift build            # all targets
+swift test             # all tests
 swift-format lint --recursive Sources/ Tests/
 swiftlint lint
 ```
@@ -27,12 +31,16 @@ swiftlint lint
 - `DiagnosticLogProvider` protocol decouples exporter from concrete log store
 - `DevToolsLogStore` conforms to `DiagnosticLogProvider` in the logging target
 - swift-log integration via `DevToolsLogHandler` → `DevToolsLogStore`
+- swift-metrics integration via `DevToolsMetricsFactory` → `InMemoryMetricsStorage`
+- Feature flags via `LicensingManager` with cohorts, rollouts, targeting, license-tier gating
 - Diagnostic export via `DiagnosticProvider` protocol → JSON
+- Handlers (log, metrics) dispatch to @MainActor storage via `Task { @MainActor in }`
 
 ## Naming Conventions
 
 - Panels: `FooPanel` struct + `FooPanelView` view
 - Providers: `FooProvider` conforming to `MetricsProvider` or `DiagnosticProvider`
+- Handlers: `DevToolsFooHandler` — `@unchecked Sendable`, dispatches to storage
 - Panel IDs: `"devtools.foo"` for built-in, `"namespace.foo"` for custom
 - UserDefaults keys: `"{keyPrefix}.{suffix}"`
 
@@ -44,6 +52,11 @@ swiftlint lint
 3. Add `///` doc comments on all public items
 4. Add tests in `Tests/DevToolsKitTests/`
 
+### Add a panel in an opt-in module
+1. Create under `Sources/DevToolsKitFoo/Panels/BarPanel/`
+2. Same pattern as core panels but `import DevToolsKit` for the protocol
+3. Add tests in `Tests/DevToolsKitFooTests/`
+
 ### Add a diagnostic provider
 1. Conform to `DiagnosticProvider` (sectionName + collect())
 2. Register with `manager.registerDiagnosticProvider(_:)`
@@ -52,7 +65,32 @@ swiftlint lint
 - Persisted properties use `access(keyPath:)` / `withMutation(keyPath:)` + UserDefaults
 - Use `key(_:)` helper for prefixed keys
 
-## Workflow
+## Documentation Rules
+
+**Always update docs when changing code.** Documentation lives in `docs/` organized by module:
+
+```
+docs/
+├── INDEX.md                  # Master navigation (update when adding modules/docs)
+├── core/                     # DevToolsKit
+│   ├── API.md, QUICK_START.md, PANELS.md, WINDOW_MODES.md, EXPORT.md, MENU.md
+├── logging/                  # DevToolsKitLogging
+│   ├── API.md, GUIDE.md
+├── metrics/                  # DevToolsKitMetrics
+│   ├── API.md, GUIDE.md
+├── licensing/                # DevToolsKitLicensing
+│   ├── API.md, FEATURE_FLAGS.md, EXPERIMENTATION.md, LICENSE_BACKENDS.md
+├── TESTING.md, AI_PROMPTS.md, CONTRIBUTING.md
+```
+
+When making changes:
+- **Adding a feature**: Update the module's GUIDE.md and API.md. Add version annotation (e.g., "Since 0.x.0") for new public types. Update AI_PROMPTS.md if the feature introduces a new integration pattern.
+- **Adding a module**: Create a `docs/{module}/` directory with at least API.md and GUIDE.md. Add the module to INDEX.md, README.md, and this file's module list.
+- **Modifying a feature**: Update affected docs to reflect the current implementation.
+- **Keep each document short**: 2–3 pages max. Break long topics into separate files.
+- **Navigation**: Every doc file (except INDEX.md) has breadcrumb links: `[< Previous](file) | [Index](../INDEX.md) | [Next >](file)`
+- **API docs**: Start with `> Source: path/to/source/` and `> Since: X.Y.Z`. Show full Swift 6 annotations.
+- **README.md**: Keep the modules table, panels table, and documentation links current.
 
 ## Workflow Rules
 
@@ -77,7 +115,6 @@ swiftlint lint
     - squash-merge the PR main
     - delete feature branch (remote & local)
     - checkout and pull main
-
 
 ## Style
 

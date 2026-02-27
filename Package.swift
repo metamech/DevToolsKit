@@ -21,6 +21,10 @@ let package = Package(
             targets: ["DevToolsKitLicensing"]
         ),
         .library(
+            name: "DevToolsKitMetrics",
+            targets: ["DevToolsKitMetrics"]
+        ),
+        .library(
             name: "DevToolsKitLicensingSeat",
             targets: ["DevToolsKitLicensingSeat"]
         ),
@@ -46,6 +50,16 @@ let package = Package(
             dependencies: [
                 "DevToolsKit",
                 .product(name: "Logging", package: "swift-log"),
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .target(
+            name: "DevToolsKitMetrics",
+            dependencies: [
+                "DevToolsKit",
+                .product(name: "Metrics", package: "swift-metrics"),
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
@@ -90,6 +104,13 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitLoggingTests",
             dependencies: ["DevToolsKitLogging"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitMetricsTests",
+            dependencies: ["DevToolsKitMetrics"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

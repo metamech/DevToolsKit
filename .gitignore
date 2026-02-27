@@ -7,6 +7,7 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 .prclean-summary.txt
+claude-progress.md
 
 # IDEs
 .vscode/

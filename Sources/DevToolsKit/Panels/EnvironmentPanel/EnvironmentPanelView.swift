@@ -67,13 +67,14 @@ public struct EnvironmentPanelView: View {
         let memoryBytes = processInfo.physicalMemory
         let memoryGB = Double(memoryBytes) / 1_073_741_824
 
-        let thermalState: String = switch processInfo.thermalState {
-        case .nominal: "Nominal"
-        case .fair: "Fair"
-        case .serious: "Serious"
-        case .critical: "Critical"
-        @unknown default: "Unknown"
-        }
+        let thermalState: String =
+            switch processInfo.thermalState {
+            case .nominal: "Nominal"
+            case .fair: "Fair"
+            case .serious: "Serious"
+            case .critical: "Critical"
+            @unknown default: "Unknown"
+            }
 
         let currentMemoryMB = Double(getProcessMemory()) / 1_048_576
 

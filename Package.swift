@@ -11,7 +11,11 @@ let package = Package(
         .library(
             name: "DevToolsKit",
             targets: ["DevToolsKit"]
-        )
+        ),
+        .library(
+            name: "DevToolsKitLogging",
+            targets: ["DevToolsKitLogging"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0")
@@ -19,8 +23,15 @@ let package = Package(
     targets: [
         .target(
             name: "DevToolsKit",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .target(
+            name: "DevToolsKitLogging",
             dependencies: [
-                .product(name: "Logging", package: "swift-log")
+                "DevToolsKit",
+                .product(name: "Logging", package: "swift-log"),
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
@@ -32,6 +43,13 @@ let package = Package(
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
-        )
+        ),
+        .testTarget(
+            name: "DevToolsKitLoggingTests",
+            dependencies: ["DevToolsKitLogging"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
     ]
 )

@@ -1,3 +1,4 @@
+import DevToolsKit
 import Foundation
 import Logging
 
@@ -44,7 +45,8 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
     ) {
         let devLevel = mapLevel(level)
         let mergedMetadata = self.metadata.merging(metadata ?? [:]) { _, new in new }
-        let metadataString: String? = mergedMetadata.isEmpty
+        let metadataString: String? =
+            mergedMetadata.isEmpty
             ? nil
             : mergedMetadata.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
 

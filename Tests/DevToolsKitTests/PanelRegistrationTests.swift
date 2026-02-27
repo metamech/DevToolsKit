@@ -1,11 +1,11 @@
-import Testing
 import SwiftUI
+import Testing
+
 @testable import DevToolsKit
 
 @Suite(.serialized)
 @MainActor
 struct PanelRegistrationTests {
-
     struct MockPanel: DevToolPanel {
         let id: String
         let title: String
@@ -37,9 +37,8 @@ struct PanelRegistrationTests {
 
     @Test func registerBuiltInPanels() {
         let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
-        let logStore = DevToolsLogStore()
 
-        manager.register(LogPanel(logStore: logStore))
+        manager.register(MockPanel(id: "devtools.log", title: "Log Viewer"))
         manager.register(EnvironmentPanel())
 
         #expect(manager.panels.count == 2)

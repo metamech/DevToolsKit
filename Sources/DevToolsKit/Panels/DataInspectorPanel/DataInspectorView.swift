@@ -62,19 +62,21 @@ public struct DataInspectorView: View {
 
     private func nodeView(value: Any, key: String, path: String, depth: Int) -> AnyView {
         if let dict = value as? [String: Any] {
-            AnyView(disclosureRow(key: key, summary: "{\(dict.count)}", path: path, depth: depth) {
-                ForEach(dict.keys.sorted(), id: \.self) { childKey in
-                    if let childValue = dict[childKey] {
-                        nodeView(value: childValue, key: childKey, path: "\(path).\(childKey)", depth: depth + 1)
+            AnyView(
+                disclosureRow(key: key, summary: "{\(dict.count)}", path: path, depth: depth) {
+                    ForEach(dict.keys.sorted(), id: \.self) { childKey in
+                        if let childValue = dict[childKey] {
+                            nodeView(value: childValue, key: childKey, path: "\(path).\(childKey)", depth: depth + 1)
+                        }
                     }
-                }
-            })
+                })
         } else if let array = value as? [Any] {
-            AnyView(disclosureRow(key: key, summary: "[\(array.count)]", path: path, depth: depth) {
-                ForEach(Array(array.enumerated()), id: \.offset) { index, element in
-                    nodeView(value: element, key: "[\(index)]", path: "\(path).[\(index)]", depth: depth + 1)
-                }
-            })
+            AnyView(
+                disclosureRow(key: key, summary: "[\(array.count)]", path: path, depth: depth) {
+                    ForEach(Array(array.enumerated()), id: \.offset) { index, element in
+                        nodeView(value: element, key: "[\(index)]", path: "\(path).[\(index)]", depth: depth + 1)
+                    }
+                })
         } else {
             AnyView(leafRow(key: key, value: "\(value)", depth: depth))
         }
@@ -118,7 +120,7 @@ public struct DataInspectorView: View {
 
     private func leafRow(key: String, value: String, depth: Int) -> some View {
         HStack(spacing: 4) {
-            Color.clear.frame(width: 12) // alignment spacer
+            Color.clear.frame(width: 12)  // alignment spacer
             Text(key)
                 .foregroundStyle(.primary)
             Text(":")

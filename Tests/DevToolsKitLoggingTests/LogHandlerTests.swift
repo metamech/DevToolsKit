@@ -1,11 +1,12 @@
-import Testing
+import DevToolsKit
 import Logging
-@testable import DevToolsKit
+import Testing
+
+@testable import DevToolsKitLogging
 
 @Suite(.serialized)
 @MainActor
 struct LogHandlerTests {
-
     @Test func logHandlerAppendsToStore() async throws {
         let store = DevToolsLogStore()
         var handler = DevToolsLogHandler(label: "test.handler", store: store)

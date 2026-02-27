@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Manages standalone NSWindows for developer tool panels.
 ///

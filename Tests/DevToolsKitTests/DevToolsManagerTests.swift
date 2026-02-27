@@ -1,11 +1,11 @@
-import Testing
 import SwiftUI
+import Testing
+
 @testable import DevToolsKit
 
 @Suite(.serialized)
 @MainActor
 struct DevToolsManagerTests {
-
     // MARK: - Test Panel
 
     struct TestPanel: DevToolPanel {

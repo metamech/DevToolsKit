@@ -101,7 +101,8 @@ struct DevToolsDockView: View {
     @ViewBuilder
     private var panelContent: some View {
         if let activeID = manager.activeDockPanelID,
-           let panel = manager.panel(for: activeID) {
+            let panel = manager.panel(for: activeID)
+        {
             panel.makeBody()
         } else if let firstPanel = dockedPanels.first {
             firstPanel.makeBody()

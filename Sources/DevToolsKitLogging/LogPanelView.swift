@@ -1,3 +1,4 @@
+import DevToolsKit
 import SwiftUI
 
 /// Log viewer UI showing aggregated, filterable log entries.

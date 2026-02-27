@@ -7,113 +7,93 @@
 [![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
 [![MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-DevToolsKit adds a full-featured developer tools overlay to any macOS SwiftUI app — log viewer, performance dashboard, environment inspector, data inspector, and diagnostic export — with zero configuration for built-in panels and a simple protocol for custom ones.
+DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Import only what you need — a core panel system with built-in panels, plus opt-in modules for logging, metrics, and feature flags.
+
+## Modules
+
+| Module | What it does | External Deps |
+|--------|-------------|---------------|
+| **DevToolsKit** | Core panel system, window management, diagnostic export, built-in panels | None |
+| **DevToolsKitLogging** | swift-log integration with filterable log viewer panel | [swift-log](https://github.com/apple/swift-log) |
+| **DevToolsKitMetrics** | swift-metrics integration with storage, query, and metrics inspector panel | [swift-metrics](https://github.com/apple/swift-metrics) |
+| **DevToolsKitLicensing** | Feature flags, cohort experiments, percentage rollouts, license-tier gating | [swift-metrics](https://github.com/apple/swift-metrics) |
 
 ## Features
 
-- **Panel system** — Register built-in or custom panels; open them as standalone windows, in a shared tabbed window, or docked to your app content
-- **Log Viewer** — Filterable, searchable log stream with FIFO capacity; integrates with [swift-log](https://github.com/apple/swift-log) via `DevToolsLogHandler`
-- **Performance Dashboard** — Card-based metric display fed by your own `MetricsProvider`
-- **Environment Panel** — Zero-config system info: macOS version, hardware, memory, thermal state, app metadata
-- **Data Inspector** — Collapsible tree view for JSON or key-value data
-- **Diagnostic Export** — Collect hardware info, settings, logs, and custom sections into a single JSON file via `NSSavePanel`
-- **Developer Menu** — Auto-generated "Developer" menu with keyboard shortcuts for every panel
-- **Persistence** — Panel display modes, dock position, and developer settings survive app restarts via `UserDefaults`
+**Core**
+- Panel system — standalone windows, shared tabbed window, or docked split view
+- Environment panel — zero-config system info (macOS, hardware, memory, thermal)
+- Performance dashboard — card-based metrics from your `MetricsProvider`
+- Data inspector — collapsible JSON/dictionary tree view
+- Diagnostic export — JSON reports with hardware, settings, logs, and custom sections
+- Developer menu — auto-generated with keyboard shortcuts for every panel
+
+**Logging** (opt-in)
+- Filterable, searchable log viewer with FIFO capacity (⌘⌥L)
+- swift-log `LogHandler` — all `Logger` output captured automatically
+
+**Metrics** (opt-in)
+- Metrics inspector with live view, query builder, and report tabs (⌘⌥I)
+- swift-metrics `MetricsFactory` — all counters, timers, gauges captured automatically
+- In-memory FIFO storage with query, aggregation, and percentile computation
+
+**Feature Flags & Licensing** (opt-in)
+- Feature flag definitions with categories, defaults, and license-tier gating (⌘⌥F)
+- Percentage rollouts and multi-cohort A/B experiments
+- Developer overrides with optional TTL expiry
+- Pluggable license backends (LicenseSeat, StoreKit)
 
 ## Quick Start
 
 ```swift
-// 1. Add the dependency to Package.swift
-.package(url: "https://github.com/metamech/DevToolsKit.git", from: "1.0.0")
+.package(url: "https://github.com/metamech/DevToolsKit.git", from: "0.1.0")
+```
 
-// 2. Set up in your App
+```swift
 import DevToolsKit
+import DevToolsKitLogging   // opt-in
+import DevToolsKitMetrics   // opt-in
+import DevToolsKitLicensing // opt-in
 
 @main struct MyApp: App {
-    @State private var devTools = DevToolsManager(keyPrefix: "myapp")
+    @State private var manager = DevToolsManager(keyPrefix: "myapp")
     @State private var logStore = DevToolsLogStore()
+    @State private var metricsManager = MetricsManager()
 
     init() {
-        devTools.register(LogPanel(logStore: logStore))
-        devTools.register(PerformancePanel(provider: MyMetricsProvider()))
-        devTools.register(EnvironmentPanel())
+        // Core
+        manager.register(EnvironmentPanel())
+
+        // Logging
+        LoggingSystem.bootstrap { DevToolsLogHandler(label: $0, store: logStore) }
+        manager.register(LogPanel(logStore: logStore))
+
+        // Metrics
+        MetricsSystem.bootstrap(DevToolsMetricsFactory(storage: metricsManager.storage))
+        manager.register(MetricsPanel(metricsManager: metricsManager))
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .devToolsDock(devTools)
-                .environment(devTools)
+                .devToolsDock(manager)
+                .environment(manager)
         }
-        .commands {
-            DevToolsCommands(manager: devTools)
-        }
+        .commands { DevToolsCommands(manager: manager) }
     }
 }
 ```
 
-## Built-in Panels
+## Panels
 
-| Panel | ID | Shortcut | Description |
-|-------|-----|----------|-------------|
-| `LogPanel` | `devtools.log` | ⌘⌥L | Filterable log viewer with swift-log integration |
-| `PerformancePanel` | `devtools.performance` | ⌘⌥M | Metric card dashboard from your `MetricsProvider` |
-| `EnvironmentPanel` | `devtools.environment` | ⌘⌥E | System and app info (zero config) |
-| `DataInspectorPanel` | configurable | configurable | Collapsible JSON/dict tree view |
-
-## Custom Panels
-
-```swift
-struct AgentConfigPanel: DevToolPanel {
-    let id = "myapp.agent-config"
-    let title = "Agent Config"
-    let icon = "gearshape"
-    let keyboardShortcut = DevToolsKeyboardShortcut(key: "a")
-
-    func makeBody() -> AnyView {
-        AnyView(AgentConfigView())
-    }
-}
-
-// Register it
-devTools.register(AgentConfigPanel())
-```
-
-## Logging Integration
-
-DevToolsKit bridges [swift-log](https://github.com/apple/swift-log) into the log viewer panel:
-
-```swift
-import Logging
-
-let logStore = DevToolsLogStore()
-LoggingSystem.bootstrap { label in
-    DevToolsLogHandler(label: label, store: logStore)
-}
-
-// Now any Logger output appears in the Log Viewer panel
-let logger = Logger(label: "MyApp")
-logger.info("App started")
-```
-
-## Diagnostic Export
-
-Export a JSON report with hardware info, settings, recent logs, and custom sections:
-
-```swift
-struct NetworkDiagnostics: DiagnosticProvider {
-    let sectionName = "network"
-    func collect() async -> any Codable & Sendable {
-        ["activeConnections": 3, "avgLatencyMs": 42]
-    }
-}
-
-devTools.registerDiagnosticProvider(NetworkDiagnostics())
-
-// Export via menu or programmatically:
-let exporter = DiagnosticExporter(manager: devTools, logStore: logStore)
-await exporter.export()  // Opens NSSavePanel
-```
+| Panel | Module | ID | Shortcut |
+|-------|--------|----|----------|
+| EnvironmentPanel | Core | `devtools.environment` | ⌘⌥E |
+| PerformancePanel | Core | `devtools.performance` | ⌘⌥M |
+| DataInspectorPanel | Core | configurable | configurable |
+| LogPanel | Logging | `devtools.log` | ⌘⌥L |
+| MetricsPanel | Metrics | `devtools.metrics` | ⌘⌥I |
+| FeatureFlagsPanel | Licensing | `devtools.feature-flags` | ⌘⌥F |
 
 ## Requirements
 
@@ -127,22 +107,30 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/metamech/DevToolsKit.git", from: "1.0.0")
+    .package(url: "https://github.com/metamech/DevToolsKit.git", from: "0.1.0")
 ]
 ```
 
-Or in Xcode: File > Add Package Dependencies, paste the URL.
+Then add only the products you need to your target:
+
+```swift
+.product(name: "DevToolsKit", package: "DevToolsKit"),           // Core (required)
+.product(name: "DevToolsKitLogging", package: "DevToolsKit"),    // Optional
+.product(name: "DevToolsKitMetrics", package: "DevToolsKit"),    // Optional
+.product(name: "DevToolsKitLicensing", package: "DevToolsKit"),  // Optional
+```
+
+Or in Xcode: File > Add Package Dependencies, paste the repository URL.
 
 ## Documentation
 
-- [Developer Guide](docs/DEVELOPER_GUIDE_00_OVERVIEW.md) — Architecture, quick start, and deep dives
-- [API Reference](docs/API_00_OVERVIEW.md) — Full type signatures and descriptions
-- [Contributing](docs/CONTRIBUTING.md) — How to build, test, and submit changes
-- [AI Instructions](docs/CLAUDE.md) — Claude Code / Copilot integration guide
-
-## Contributing
-
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for build instructions, code style, and PR process.
+- **[Documentation Index](docs/INDEX.md)** — All docs, organized by module
+- [Quick Start](docs/core/QUICK_START.md) — Add DevToolsKit to your app in 4 steps
+- [Core API](docs/core/API.md) | [Logging API](docs/logging/API.md) | [Metrics API](docs/metrics/API.md) | [Licensing API](docs/licensing/API.md)
+- [Feature Flags Guide](docs/licensing/FEATURE_FLAGS.md) — Define, gate, and override flags
+- [Testing Patterns](docs/TESTING.md) — Unit testing with DevToolsKit
+- [AI Coding Prompts](docs/AI_PROMPTS.md) — Template prompts for AI assistants
+- [Contributing](docs/CONTRIBUTING.md) — Build, test, and submit changes
 
 ## License
 

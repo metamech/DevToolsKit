@@ -1,4 +1,5 @@
 import SwiftUI
+import DevToolsKit
 
 /// Log viewer UI showing aggregated, filterable log entries.
 public struct LogPanelView: View {

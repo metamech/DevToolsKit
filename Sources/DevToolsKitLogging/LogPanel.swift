@@ -1,4 +1,5 @@
 import SwiftUI
+import DevToolsKit
 
 /// Built-in log viewer panel that displays entries from a ``DevToolsLogStore``.
 ///

@@ -1,5 +1,6 @@
 import Testing
-@testable import DevToolsKit
+import DevToolsKit
+@testable import DevToolsKitLogging
 
 @Suite(.serialized)
 @MainActor

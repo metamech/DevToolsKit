@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import DevToolsKit
 
 /// A swift-log `LogHandler` that feeds log entries into a `DevToolsLogStore`.
 ///

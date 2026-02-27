@@ -5,20 +5,20 @@ import AppKit
 @MainActor
 public struct DiagnosticExporter {
     private let manager: DevToolsManager
-    private let logStore: DevToolsLogStore?
+    private let logProvider: (any DiagnosticLogProvider)?
     private let appName: String
 
     /// - Parameters:
     ///   - manager: The manager whose providers and settings are included in the report.
-    ///   - logStore: Optional log store; if provided, recent entries are included.
+    ///   - logProvider: Optional log provider; if provided, recent entries are included.
     ///   - appName: App name for the report; defaults to `CFBundleName`.
     public init(
         manager: DevToolsManager,
-        logStore: DevToolsLogStore? = nil,
+        logProvider: (any DiagnosticLogProvider)? = nil,
         appName: String? = nil
     ) {
         self.manager = manager
-        self.logStore = logStore
+        self.logProvider = logProvider
         self.appName = appName
             ?? Bundle.main.infoDictionary?["CFBundleName"] as? String
             ?? "app"
@@ -113,15 +113,7 @@ public struct DiagnosticExporter {
     }
 
     private func collectRecentLogs() -> [DiagnosticReport.LogEntrySnapshot] {
-        guard let logStore else { return [] }
-        return logStore.recentEntries(100).map { entry in
-            DiagnosticReport.LogEntrySnapshot(
-                timestamp: entry.timestamp,
-                level: entry.level.rawValue,
-                source: entry.source,
-                message: entry.message
-            )
-        }
+        logProvider?.diagnosticLogEntries(limit: 100) ?? []
     }
 
     private func showError(_ message: String) {

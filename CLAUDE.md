@@ -18,26 +18,6 @@ swift-format lint --recursive Sources/ Tests/
 swiftlint lint
 ```
 
-## Key File Paths
-
-| Area | Path |
-|------|------|
-| Panel protocol | `Sources/DevToolsKit/Core/DevToolPanel.swift` |
-| Central manager | `Sources/DevToolsKit/Core/DevToolsManager.swift` |
-| Config enums | `Sources/DevToolsKit/Core/DevToolsConfiguration.swift` |
-| Log provider protocol | `Sources/DevToolsKit/Core/DiagnosticLogProvider.swift` |
-| Developer menu | `Sources/DevToolsKit/Menu/DevToolsCommands.swift` |
-| Dock modifier | `Sources/DevToolsKit/Modifiers/DevToolsDockModifier.swift` |
-| Window managers | `Sources/DevToolsKit/Window/` |
-| Performance panel | `Sources/DevToolsKit/Panels/PerformancePanel/` |
-| Environment panel | `Sources/DevToolsKit/Panels/EnvironmentPanel/` |
-| Data inspector | `Sources/DevToolsKit/Panels/DataInspectorPanel/` |
-| Diagnostic export | `Sources/DevToolsKit/Export/` |
-| Log store & handler | `Sources/DevToolsKitLogging/` |
-| Log panel | `Sources/DevToolsKitLogging/LogPanel.swift` |
-| Core tests | `Tests/DevToolsKitTests/` |
-| Logging tests | `Tests/DevToolsKitLoggingTests/` |
-
 ## Architecture
 
 - `DevToolsManager` (@Observable, @MainActor) is the central registry
@@ -74,7 +54,30 @@ swiftlint lint
 
 ## Workflow
 
-GitHub Flow: Issue → branch `<type>/<issue>-<slug>` → commits → PR → merge to `main`.
+## Workflow Rules
+
+- Always read this CLAUDE.md before making significant changes.
+- Before starting work, propose a concrete plan and ask for approval.
+- Keep a running log in `claude-progress.md`:
+  - What was planned.
+  - What was completed.
+  - Design decisions and trade-offs made.
+- Do not change without explicit approval:
+  - Bundle identifier.
+  - Entitlements (especially app sandbox setting).
+  - Signing configuration.
+  - Deployment targets.
+- Follow a "GitHub Flow"
+  - Work must be associated with a GitHub Issue. If one doesn't exist, create one.
+  - Create a feature branch before any implementation: `<type>/<issue-number>-<slug>`.
+  - Commit and push work to feature branch at each major phase of the plan
+  - Update PROGRESS.md if present and applicable when starting and after completing each phase
+  - Create a PR to merge into "main" when the plan is completed and wait for user input
+  - After the PR is approved perform "clean up" to prepare for new work:
+    - squash-merge the PR main
+    - delete feature branch (remote & local)
+    - checkout and pull main
+
 
 ## Style
 

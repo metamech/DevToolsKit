@@ -14,6 +14,7 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 | **[DevToolsKitLicensing](licensing/FEATURE_FLAGS.md)** | Feature flags, experimentation (cohorts/rollouts), license gating | DevToolsKit, [swift-metrics](https://github.com/apple/swift-metrics) |
 | **[DevToolsKitProcess](process/GUIDE.md)** | Process execution with timeout, stdout/stderr capture | None |
 | **[DevToolsKitSecurity](security/GUIDE.md)** | Permissions, sandbox validation, bookmarks, command policy | DevToolsKit |
+| **[DevToolsKitGitHub](github/GUIDE.md)** | GitHub REST API client with caching, retry, rate limiting | DevToolsKit |
 
 ## Quick Links
 
@@ -48,6 +49,10 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 ### Security (opt-in)
 - [Security Guide](security/GUIDE.md) — Permissions, sandbox, bookmarks, command policy
 - [Security API Reference](security/API.md)
+
+### GitHub (opt-in)
+- [GitHub Guide](github/GUIDE.md)
+- [GitHub API Reference](github/API.md)
 
 ### Cross-Module
 - [Testing Patterns](TESTING.md)

@@ -14,6 +14,7 @@ Multi-product package:
 - **DevToolsKitLicensingStoreKit** — StoreKit backend (depends on DevToolsKitLicensing)
 - **DevToolsKitProcess** — process execution (no external deps): executor, result, timeout
 - **DevToolsKitSecurity** — security (depends on DevToolsKit): permissions, sandbox, bookmarks, command policy, panel
+- **DevToolsKitGitHub** — GitHub API (depends on DevToolsKit): client, cache, retry, types, panel
 
 ## Build & Test
 
@@ -85,6 +86,8 @@ docs/
 ├── process/                  # DevToolsKitProcess
 │   ├── API.md, GUIDE.md
 ├── security/                 # DevToolsKitSecurity
+│   ├── API.md, GUIDE.md
+├── github/                   # DevToolsKitGitHub
 │   ├── API.md, GUIDE.md
 ├── TESTING.md, AI_PROMPTS.md, CONTRIBUTING.md
 ```

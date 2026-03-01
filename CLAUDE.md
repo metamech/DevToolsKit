@@ -12,6 +12,7 @@ Multi-product package:
 - **DevToolsKitLicensing** — feature flags & licensing (depends on DevToolsKit + swift-metrics): flags, experiments, license gating, panel
 - **DevToolsKitLicensingSeat** — LicenseSeat backend (depends on DevToolsKitLicensing + licenseseat-swift)
 - **DevToolsKitLicensingStoreKit** — StoreKit backend (depends on DevToolsKitLicensing)
+- **DevToolsKitProcess** — process execution (no external deps): executor, result, timeout
 
 ## Build & Test
 
@@ -80,6 +81,8 @@ docs/
 │   ├── API.md, GUIDE.md
 ├── licensing/                # DevToolsKitLicensing
 │   ├── API.md, FEATURE_FLAGS.md, EXPERIMENTATION.md, LICENSE_BACKENDS.md
+├── process/                  # DevToolsKitProcess
+│   ├── API.md, GUIDE.md
 ├── TESTING.md, AI_PROMPTS.md, CONTRIBUTING.md
 ```
 

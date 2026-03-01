@@ -36,6 +36,10 @@ let package = Package(
             name: "DevToolsKitProcess",
             targets: ["DevToolsKitProcess"]
         ),
+        .library(
+            name: "DevToolsKitSecurity",
+            targets: ["DevToolsKitSecurity"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
@@ -104,6 +108,15 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        .target(
+            name: "DevToolsKitSecurity",
+            dependencies: [
+                "DevToolsKit",
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .testTarget(
             name: "DevToolsKitTests",
             dependencies: ["DevToolsKit"],
@@ -135,6 +148,13 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitProcessTests",
             dependencies: ["DevToolsKitProcess"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitSecurityTests",
+            dependencies: ["DevToolsKitSecurity"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

@@ -13,6 +13,7 @@ Multi-product package:
 - **DevToolsKitLicensingSeat** — LicenseSeat backend (depends on DevToolsKitLicensing + licenseseat-swift)
 - **DevToolsKitLicensingStoreKit** — StoreKit backend (depends on DevToolsKitLicensing)
 - **DevToolsKitProcess** — process execution (no external deps): executor, result, timeout
+- **DevToolsKitSecurity** — security (depends on DevToolsKit): permissions, sandbox, bookmarks, command policy, panel
 
 ## Build & Test
 
@@ -82,6 +83,8 @@ docs/
 ├── licensing/                # DevToolsKitLicensing
 │   ├── API.md, FEATURE_FLAGS.md, EXPERIMENTATION.md, LICENSE_BACKENDS.md
 ├── process/                  # DevToolsKitProcess
+│   ├── API.md, GUIDE.md
+├── security/                 # DevToolsKitSecurity
 │   ├── API.md, GUIDE.md
 ├── TESTING.md, AI_PROMPTS.md, CONTRIBUTING.md
 ```

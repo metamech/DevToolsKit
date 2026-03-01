@@ -17,6 +17,7 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 | **[DevToolsKitGitHub](github/GUIDE.md)** | GitHub REST API client with caching, retry, rate limiting | DevToolsKit |
 | **[DevToolsKitDiff](diff/GUIDE.md)** | Unified diff parsing, application, and validation | None |
 | **[DevToolsKitCodeAnalysis](codeanalysis/GUIDE.md)** | Language-agnostic code analysis: security, performance, complexity, metrics, reports | DevToolsKit |
+| **[DevToolsKitCodeAnalysisSwift](codeanalysis-swift/GUIDE.md)** | Swift-specific analysis rules | DevToolsKitCodeAnalysis |
 
 ## Quick Links
 
@@ -63,6 +64,10 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 ### Code Analysis (opt-in)
 - [Code Analysis Guide](codeanalysis/GUIDE.md) — Security, performance, complexity analysis and reporting
 - [Code Analysis API Reference](codeanalysis/API.md)
+
+### Swift Code Analysis (opt-in)
+- [Swift Analysis Guide](codeanalysis-swift/GUIDE.md) — Swift-specific rules
+- [Swift Analysis API Reference](codeanalysis-swift/API.md)
 
 ### Cross-Module
 - [Testing Patterns](TESTING.md)

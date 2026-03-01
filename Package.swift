@@ -52,6 +52,10 @@ let package = Package(
             name: "DevToolsKitCodeAnalysis",
             targets: ["DevToolsKitCodeAnalysis"]
         ),
+        .library(
+            name: "DevToolsKitCodeAnalysisSwift",
+            targets: ["DevToolsKitCodeAnalysisSwift"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
@@ -151,6 +155,13 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        .target(
+            name: "DevToolsKitCodeAnalysisSwift",
+            dependencies: ["DevToolsKitCodeAnalysis"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .testTarget(
             name: "DevToolsKitTests",
             dependencies: ["DevToolsKit"],
@@ -210,6 +221,13 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitCodeAnalysisTests",
             dependencies: ["DevToolsKitCodeAnalysis"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitCodeAnalysisSwiftTests",
+            dependencies: ["DevToolsKitCodeAnalysisSwift", "DevToolsKitCodeAnalysis"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

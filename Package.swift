@@ -32,6 +32,10 @@ let package = Package(
             name: "DevToolsKitLicensingStoreKit",
             targets: ["DevToolsKitLicensingStoreKit"]
         ),
+        .library(
+            name: "DevToolsKitProcess",
+            targets: ["DevToolsKitProcess"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
@@ -94,6 +98,12 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        .target(
+            name: "DevToolsKitProcess",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .testTarget(
             name: "DevToolsKitTests",
             dependencies: ["DevToolsKit"],
@@ -118,6 +128,13 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitLicensingTests",
             dependencies: ["DevToolsKitLicensing"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitProcessTests",
+            dependencies: ["DevToolsKitProcess"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

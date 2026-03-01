@@ -22,6 +22,7 @@ DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Impor
 | **DevToolsKitGitHub** | GitHub REST API client with caching, retry, rate limiting | None |
 | **DevToolsKitDiff** | Unified diff parsing, application, and validation | None |
 | **DevToolsKitCodeAnalysis** | Language-agnostic code analysis: security, performance, complexity, metrics, reports | None |
+| **DevToolsKitCodeAnalysisSwift** | Swift-specific analysis rules (force unwraps, retain cycles, etc.) | DevToolsKitCodeAnalysis |
 
 ## Features
 
@@ -134,7 +135,7 @@ Or in Xcode: File > Add Package Dependencies, paste the repository URL.
 
 - **[Documentation Index](docs/INDEX.md)** — All docs, organized by module
 - [Quick Start](docs/core/QUICK_START.md) — Add DevToolsKit to your app in 4 steps
-- [Core API](docs/core/API.md) | [Logging API](docs/logging/API.md) | [Metrics API](docs/metrics/API.md) | [Licensing API](docs/licensing/API.md) | [Process API](docs/process/API.md) | [Security API](docs/security/API.md) | [GitHub API](docs/github/API.md) | [Diff API](docs/diff/API.md) | [Code Analysis API](docs/codeanalysis/API.md)
+- [Core API](docs/core/API.md) | [Logging API](docs/logging/API.md) | [Metrics API](docs/metrics/API.md) | [Licensing API](docs/licensing/API.md) | [Process API](docs/process/API.md) | [Security API](docs/security/API.md) | [GitHub API](docs/github/API.md) | [Diff API](docs/diff/API.md) | [Code Analysis API](docs/codeanalysis/API.md) | [Swift Analysis API](docs/codeanalysis-swift/API.md)
 - [Feature Flags Guide](docs/licensing/FEATURE_FLAGS.md) — Define, gate, and override flags
 - [Testing Patterns](docs/TESTING.md) — Unit testing with DevToolsKit
 - [AI Coding Prompts](docs/AI_PROMPTS.md) — Template prompts for AI assistants

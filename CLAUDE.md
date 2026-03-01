@@ -16,6 +16,8 @@ Multi-product package:
 - **DevToolsKitSecurity** — security (depends on DevToolsKit): permissions, sandbox, bookmarks, command policy, panel
 - **DevToolsKitGitHub** — GitHub API (depends on DevToolsKit): client, cache, retry, types, panel
 - **DevToolsKitDiff** — diff engine (no external deps): unified diff parsing, application, validation
+- **DevToolsKitCodeAnalysis** — code analysis (depends on DevToolsKit): analyzers, rules, reports, panel
+- **DevToolsKitCodeAnalysisSwift** — Swift analysis (depends on DevToolsKitCodeAnalysis): Swift-specific rules
 - **DevToolsKitCodeAnalysis** — code analysis (depends on DevToolsKit): security, performance, complexity, metrics, reports, panel
 
 ## Build & Test

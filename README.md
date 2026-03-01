@@ -21,6 +21,7 @@ DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Impor
 | **DevToolsKitSecurity** | Permissions, sandbox validation, bookmarks, command policy | None |
 | **DevToolsKitGitHub** | GitHub REST API client with caching, retry, rate limiting | None |
 | **DevToolsKitDiff** | Unified diff parsing, application, and validation | None |
+| **DevToolsKitCodeAnalysis** | Language-agnostic code analysis: security, performance, complexity, metrics, reports | None |
 
 ## Features
 
@@ -100,6 +101,7 @@ import DevToolsKitLicensing // opt-in
 | FeatureFlagsPanel | Licensing | `devtools.feature-flags` | ⌘⌥F |
 | PermissionAuditPanel | Security | `devtools.permissions` | ⌘⌥P |
 | GitHubStatusPanel | GitHub | `devtools.github` | ⌘⌥G |
+| CodeAnalysisPanel | CodeAnalysis | `devtools.analysis` | ⌘⌥A |
 
 ## Requirements
 
@@ -132,7 +134,7 @@ Or in Xcode: File > Add Package Dependencies, paste the repository URL.
 
 - **[Documentation Index](docs/INDEX.md)** — All docs, organized by module
 - [Quick Start](docs/core/QUICK_START.md) — Add DevToolsKit to your app in 4 steps
-- [Core API](docs/core/API.md) | [Logging API](docs/logging/API.md) | [Metrics API](docs/metrics/API.md) | [Licensing API](docs/licensing/API.md) | [Process API](docs/process/API.md) | [Security API](docs/security/API.md) | [GitHub API](docs/github/API.md) | [Diff API](docs/diff/API.md)
+- [Core API](docs/core/API.md) | [Logging API](docs/logging/API.md) | [Metrics API](docs/metrics/API.md) | [Licensing API](docs/licensing/API.md) | [Process API](docs/process/API.md) | [Security API](docs/security/API.md) | [GitHub API](docs/github/API.md) | [Diff API](docs/diff/API.md) | [Code Analysis API](docs/codeanalysis/API.md)
 - [Feature Flags Guide](docs/licensing/FEATURE_FLAGS.md) — Define, gate, and override flags
 - [Testing Patterns](docs/TESTING.md) — Unit testing with DevToolsKit
 - [AI Coding Prompts](docs/AI_PROMPTS.md) — Template prompts for AI assistants

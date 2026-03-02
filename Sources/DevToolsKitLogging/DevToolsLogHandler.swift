@@ -64,7 +64,9 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
 
     private func mapLevel(_ level: Logging.Logger.Level) -> DevToolsLogLevel {
         switch level {
-        case .trace, .debug:
+        case .trace:
+            return .trace
+        case .debug:
             return .debug
         case .info, .notice:
             return .info

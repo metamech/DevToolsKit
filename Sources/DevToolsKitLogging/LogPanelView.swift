@@ -45,13 +45,14 @@ public struct LogPanelView: View {
     private var toolbar: some View {
         HStack(spacing: 12) {
             Picker("Level", selection: $logStore.filterLevel) {
+                Text("All").tag(DevToolsLogLevel.trace)
                 Text("Debug").tag(DevToolsLogLevel.debug)
                 Text("Info").tag(DevToolsLogLevel.info)
                 Text("Warning").tag(DevToolsLogLevel.warning)
                 Text("Error").tag(DevToolsLogLevel.error)
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
+            .frame(maxWidth: 380)
 
             Picker("Source", selection: $logStore.filterSource) {
                 Text("All").tag(String?.none)
@@ -133,6 +134,7 @@ struct LogEntryRow: View {
 
     private var levelText: String {
         switch entry.level {
+        case .trace: "TRC"
         case .debug: "DBG"
         case .info: "INF"
         case .warning: "WRN"
@@ -142,6 +144,7 @@ struct LogEntryRow: View {
 
     private var levelColor: Color {
         switch entry.level {
+        case .trace: .purple
         case .debug: .gray
         case .info: .blue
         case .warning: .orange

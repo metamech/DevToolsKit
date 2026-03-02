@@ -31,6 +31,7 @@ struct LogStoreTests {
     @Test func filterByLevel() {
         let store = DevToolsLogStore()
 
+        store.append(DevToolsLogEntry(level: .trace, source: "test", message: "Trace"))
         store.append(DevToolsLogEntry(level: .debug, source: "test", message: "Debug"))
         store.append(DevToolsLogEntry(level: .info, source: "test", message: "Info"))
         store.append(DevToolsLogEntry(level: .warning, source: "test", message: "Warning"))
@@ -39,6 +40,25 @@ struct LogStoreTests {
         store.filterLevel = .warning
         #expect(store.filteredEntries.count == 2)
         #expect(store.filteredEntries.map(\.message) == ["Warning", "Error"])
+    }
+
+    @Test func filterByLevel_includesTrace() {
+        let store = DevToolsLogStore()
+
+        store.append(DevToolsLogEntry(level: .trace, source: "test", message: "Trace"))
+        store.append(DevToolsLogEntry(level: .debug, source: "test", message: "Debug"))
+        store.append(DevToolsLogEntry(level: .info, source: "test", message: "Info"))
+
+        store.filterLevel = .trace
+        #expect(store.filteredEntries.count == 3)
+        #expect(store.filteredEntries.first?.message == "Trace")
+    }
+
+    @Test func traceIsLowestLevel() {
+        #expect(DevToolsLogLevel.trace < .debug)
+        #expect(DevToolsLogLevel.trace < .info)
+        #expect(DevToolsLogLevel.trace < .warning)
+        #expect(DevToolsLogLevel.trace < .error)
     }
 
     @Test func filterBySource() {

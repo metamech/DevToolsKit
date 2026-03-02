@@ -47,7 +47,8 @@ logger.error("Connection failed")
 
 | swift-log Level | DevToolsLogLevel |
 |----------------|------------------|
-| trace, debug | `.debug` |
+| trace | `.trace` |
+| debug | `.debug` |
 | info, notice | `.info` |
 | warning | `.warning` |
 | error, critical | `.error` |
@@ -66,7 +67,7 @@ logStore.append(DevToolsLogEntry(
 
 ## Log Panel Features (⌘⌥L)
 
-- **Level filter** — Segmented picker: Debug, Info, Warning, Error
+- **Level filter** — Segmented picker: All, Debug, Info, Warning, Error
 - **Source filter** — Dropdown of all known sources
 - **Search** — Full-text search across messages
 - **Auto-scroll** — Follows new entries in real time
@@ -78,6 +79,7 @@ logStore.append(DevToolsLogEntry(
 `DevToolsLogStore` exposes bindable filter state:
 
 ```swift
+logStore.filterLevel = .trace       // Show all entries (default)
 logStore.filterLevel = .warning     // Show warning and above
 logStore.filterSource = "network"   // Show only "network" source
 logStore.searchText = "timeout"     // Full-text search

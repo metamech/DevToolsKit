@@ -24,7 +24,7 @@ public enum DockPosition: String, Codable, Sendable, CaseIterable {
 ///
 /// Conforms to `Comparable` so you can filter with `entry.level >= .warning`.
 public enum DevToolsLogLevel: String, CaseIterable, Sendable, Codable, Comparable {
-    case debug, info, warning, error
+    case trace, debug, info, warning, error
 
     /// Human-readable name (e.g., "Warning").
     public var displayName: String {
@@ -37,6 +37,7 @@ public enum DevToolsLogLevel: String, CaseIterable, Sendable, Codable, Comparabl
 
     private var sortOrder: Int {
         switch self {
+        case .trace: -1
         case .debug: 0
         case .info: 1
         case .warning: 2

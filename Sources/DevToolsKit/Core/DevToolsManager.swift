@@ -23,6 +23,9 @@ public final class DevToolsManager: Sendable {
     /// Shared window manager for standalone / pop-out windows.
     internal let windowManager = DevToolsWindowManager()
 
+    /// Shared tabbed window for windowed display mode.
+    internal let tabbedWindow = DevToolsTabbedWindow()
+
     // MARK: - Registered Panels
 
     /// All registered panels in registration order.
@@ -211,7 +214,11 @@ public final class DevToolsManager: Sendable {
         case .windowed:
             activeTabbedPanelID = panelID
             isTabbedWindowOpen = true
+            tabbedWindow.open(manager: self)
         case .separateWindows:
+            if let panel = panel(for: panelID) {
+                windowManager.open(panel: panel)
+            }
             openStandalonePanelIDs.insert(panelID)
         }
     }

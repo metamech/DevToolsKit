@@ -31,11 +31,11 @@ The dock toolbar includes a position picker, pop-out button, and close button. A
 
 ### Windowed (default)
 
-All panels share a single tabbed `NSWindow`. This is the default mode.
+All panels share a single tabbed `NSWindow` managed by `DevToolsManager.tabbedWindow`. This is the default mode. Calling `openPanel` creates the window (or brings it to front if already visible).
 
 ```swift
 manager.displayMode = .windowed
-manager.openPanel("devtools.log")
+manager.openPanel("devtools.log")  // Opens/focuses the tabbed NSWindow
 ```
 
 Open all panels at once with **⌘⌥⇧D** or programmatically:

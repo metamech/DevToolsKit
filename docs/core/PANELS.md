@@ -71,8 +71,8 @@ DevToolsKeyboardShortcut(key: "d", modifiers: [.command, .shift])
 
 ```swift
 manager.register(panel)                    // Add to registry
-manager.openPanel(panelID)                 // Open in current display mode
+manager.openPanel(panelID)                 // Open in current global display mode
 manager.closePanel(panelID)                // Close
-manager.movePanel(panelID, to: .docked)    // Change display mode
+manager.popOutPanel(panelID)               // Pop out to standalone window
 manager.unregister(panelID: id)            // Remove from registry
 ```

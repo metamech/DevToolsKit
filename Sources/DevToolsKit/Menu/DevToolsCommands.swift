@@ -11,24 +11,16 @@ import SwiftUI
 /// ```
 public struct DevToolsCommands: Commands {
     private let manager: DevToolsManager
-    private let windowManager: DevToolsWindowManager
-    private let tabbedWindow: DevToolsTabbedWindow
     private let onExportDiagnostics: (() -> Void)?
 
     /// - Parameters:
     ///   - manager: The shared DevToolsManager.
-    ///   - windowManager: Manager for standalone panel windows; a default is created if omitted.
-    ///   - tabbedWindow: Manager for the shared tabbed window; a default is created if omitted.
     ///   - onExportDiagnostics: Optional custom export handler; if `nil`, the built-in exporter is used.
     public init(
         manager: DevToolsManager,
-        windowManager: DevToolsWindowManager = DevToolsWindowManager(),
-        tabbedWindow: DevToolsTabbedWindow = DevToolsTabbedWindow(),
         onExportDiagnostics: (() -> Void)? = nil
     ) {
         self.manager = manager
-        self.windowManager = windowManager
-        self.tabbedWindow = tabbedWindow
         self.onExportDiagnostics = onExportDiagnostics
     }
 
@@ -42,11 +34,16 @@ public struct DevToolsCommands: Commands {
                 Divider()
             }
 
-            Button("Show All (Tabbed)") {
+            Picker("Display Mode", selection: Bindable(manager).displayMode) {
+                Text("Docked").tag(DevToolsDisplayMode.docked)
+                Text("Windowed").tag(DevToolsDisplayMode.windowed)
+                Text("Separate Windows").tag(DevToolsDisplayMode.separateWindows)
+            }
+
+            Button("Show All") {
                 for panel in manager.panels {
-                    manager.setDisplayMode(.tabbed, for: panel.id)
+                    manager.openPanel(panel.id)
                 }
-                tabbedWindow.open(manager: manager)
             }
             .keyboardShortcut("d", modifiers: [.command, .option, .shift])
 
@@ -92,17 +89,16 @@ public struct DevToolsCommands: Commands {
     }
 
     private func openPanel(_ panel: any DevToolPanel) {
-        let mode = manager.displayMode(for: panel.id)
-        switch mode {
-        case .standalone:
-            windowManager.open(panel: panel)
-            manager.openStandalonePanelIDs.insert(panel.id)
-        case .tabbed:
-            manager.activeTabbedPanelID = panel.id
-            tabbedWindow.open(manager: manager)
+        switch manager.displayMode {
         case .docked:
             manager.activeDockPanelID = panel.id
             manager.isDockVisible = true
+        case .windowed:
+            manager.activeTabbedPanelID = panel.id
+            manager.isTabbedWindowOpen = true
+        case .separateWindows:
+            manager.windowManager.open(panel: panel)
+            manager.openStandalonePanelIDs.insert(panel.id)
         }
     }
 }

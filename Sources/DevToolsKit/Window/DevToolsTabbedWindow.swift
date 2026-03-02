@@ -63,14 +63,10 @@ struct DevToolsTabbedContentView: View {
         .frame(minWidth: 500, minHeight: 400)
     }
 
-    private var tabbedPanels: [any DevToolPanel] {
-        manager.panels.filter { manager.displayMode(for: $0.id) == .tabbed }
-    }
-
     private var tabBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
-                ForEach(tabbedPanels, id: \.id) { panel in
+                ForEach(manager.panels, id: \.id) { panel in
                     tabButton(for: panel)
                 }
             }
@@ -102,10 +98,7 @@ struct DevToolsTabbedContentView: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button("Pop Out to Window") {
-                manager.movePanel(panel.id, to: .standalone)
-            }
-            Button("Move to Dock") {
-                manager.movePanel(panel.id, to: .docked)
+                manager.popOutPanel(panel.id)
             }
             Divider()
             Button("Close") {
@@ -120,7 +113,7 @@ struct DevToolsTabbedContentView: View {
             let panel = manager.panel(for: activeID)
         {
             panel.makeBody()
-        } else if let firstPanel = tabbedPanels.first {
+        } else if let firstPanel = manager.panels.first {
             firstPanel.makeBody()
                 .onAppear {
                     manager.activeTabbedPanelID = firstPanel.id
@@ -129,7 +122,7 @@ struct DevToolsTabbedContentView: View {
             ContentUnavailableView(
                 "No Panels",
                 systemImage: "rectangle.3.group",
-                description: Text("Move panels to the tabbed view to see them here.")
+                description: Text("Register panels to see them here.")
             )
         }
     }

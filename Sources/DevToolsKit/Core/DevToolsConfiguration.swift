@@ -1,13 +1,18 @@
 import Foundation
 
-/// How a panel is displayed: as its own window, in the shared tabbed window, or docked to the app content.
-public enum PanelDisplayMode: String, Codable, Sendable {
-    /// Panel opens in its own standalone `NSWindow`.
-    case standalone
-    /// Panel opens as a tab in the shared tabbed window.
-    case tabbed
-    /// Panel opens in the resizable dock attached to the app content.
+/// Global display mode for all developer tool panels.
+///
+/// Controls how panels are presented when opened. Individual panels can be
+/// "popped out" to standalone windows without changing the global mode.
+///
+/// Since 0.4.0
+public enum DevToolsDisplayMode: String, Codable, Sendable, CaseIterable {
+    /// All panels appear in a split-view dock attached to the app content.
     case docked
+    /// All panels share a single tabbed `NSWindow`.
+    case windowed
+    /// Each panel opens in its own standalone `NSWindow`.
+    case separateWindows
 }
 
 /// Edge where the dock attaches to the main app content.

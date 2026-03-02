@@ -18,6 +18,11 @@ public final class DevToolsManager: Sendable {
     /// Prefix for all UserDefaults keys to prevent collisions.
     public let keyPrefix: String
 
+    // MARK: - Internal Window Manager
+
+    /// Shared window manager for standalone / pop-out windows.
+    internal let windowManager = DevToolsWindowManager()
+
     // MARK: - Registered Panels
 
     /// All registered panels in registration order.
@@ -54,36 +59,25 @@ public final class DevToolsManager: Sendable {
         }
     }
 
-    // MARK: - Panel Display Modes
+    // MARK: - Global Display Mode
 
-    /// Display mode per panel (persisted).
-    public private(set) var panelDisplayModes: [String: PanelDisplayMode] = [:]
-
-    /// Set the display mode for a panel and persist it to UserDefaults.
+    /// How all panels are displayed: docked, windowed (tabbed), or separate windows.
     ///
-    /// - Parameters:
-    ///   - mode: The desired display mode.
-    ///   - panelID: The panel's stable identifier.
-    public func setDisplayMode(_ mode: PanelDisplayMode, for panelID: String) {
-        panelDisplayModes[panelID] = mode
-        UserDefaults.standard.set(mode.rawValue, forKey: key("panelMode.\(panelID)"))
-    }
-
-    /// Get the display mode for a panel, falling back to `.standalone`.
+    /// Changing the display mode takes effect the next time a panel is opened.
+    /// Persisted to UserDefaults under `{keyPrefix}.displayMode`.
     ///
-    /// - Parameter panelID: The panel's stable identifier.
-    /// - Returns: The persisted or default display mode.
-    public func displayMode(for panelID: String) -> PanelDisplayMode {
-        if let mode = panelDisplayModes[panelID] {
-            return mode
+    /// Since 0.4.0
+    public var displayMode: DevToolsDisplayMode {
+        get {
+            access(keyPath: \.displayMode)
+            let raw = UserDefaults.standard.string(forKey: key("displayMode")) ?? "windowed"
+            return DevToolsDisplayMode(rawValue: raw) ?? .windowed
         }
-        if let raw = UserDefaults.standard.string(forKey: key("panelMode.\(panelID)")),
-            let mode = PanelDisplayMode(rawValue: raw)
-        {
-            panelDisplayModes[panelID] = mode
-            return mode
+        set {
+            withMutation(keyPath: \.displayMode) {
+                UserDefaults.standard.set(newValue.rawValue, forKey: key("displayMode"))
+            }
         }
-        return .standalone
     }
 
     // MARK: - Dock State
@@ -152,7 +146,7 @@ public final class DevToolsManager: Sendable {
 
     // MARK: - Open Standalone Windows
 
-    /// Set of currently open standalone panel IDs.
+    /// Set of currently open standalone panel IDs (pop-outs or separate-window mode).
     public var openStandalonePanelIDs: Set<String> = []
 
     // MARK: - Diagnostic Providers
@@ -167,7 +161,7 @@ public final class DevToolsManager: Sendable {
     /// - Parameter keyPrefix: Prefix for all persisted keys (e.g., `"myapp"`).
     public init(keyPrefix: String) {
         self.keyPrefix = keyPrefix
-        loadPersistedPanelModes()
+        migratePerPanelModesToGlobalIfNeeded()
     }
 
     // MARK: - Panel Registration
@@ -180,12 +174,11 @@ public final class DevToolsManager: Sendable {
         panels.append(panel)
     }
 
-    /// Remove a panel by its ID and clear its persisted display mode.
+    /// Remove a panel by its ID.
     ///
     /// - Parameter panelID: The panel's stable identifier.
     public func unregister(panelID: String) {
         panels.removeAll { $0.id == panelID }
-        panelDisplayModes.removeValue(forKey: panelID)
     }
 
     /// Look up a registered panel by its stable identifier.
@@ -207,20 +200,19 @@ public final class DevToolsManager: Sendable {
 
     // MARK: - Panel Actions
 
-    /// Open a panel in its current display mode (standalone, tabbed, or docked).
+    /// Open a panel according to the current global display mode.
     ///
     /// - Parameter panelID: The panel's stable identifier.
     public func openPanel(_ panelID: String) {
-        let mode = displayMode(for: panelID)
-        switch mode {
-        case .standalone:
-            openStandalonePanelIDs.insert(panelID)
-        case .tabbed:
-            activeTabbedPanelID = panelID
-            isTabbedWindowOpen = true
+        switch displayMode {
         case .docked:
             activeDockPanelID = panelID
             isDockVisible = true
+        case .windowed:
+            activeTabbedPanelID = panelID
+            isTabbedWindowOpen = true
+        case .separateWindows:
+            openStandalonePanelIDs.insert(panelID)
         }
     }
 
@@ -229,6 +221,7 @@ public final class DevToolsManager: Sendable {
     /// - Parameter panelID: The panel's stable identifier.
     public func closePanel(_ panelID: String) {
         openStandalonePanelIDs.remove(panelID)
+        windowManager.close(panelID: panelID)
         if activeTabbedPanelID == panelID {
             activeTabbedPanelID = nil
         }
@@ -237,25 +230,75 @@ public final class DevToolsManager: Sendable {
         }
     }
 
-    /// Close a panel and reopen it in a different display mode.
+    /// Open a panel in its own standalone window without changing the global display mode.
     ///
-    /// - Parameters:
-    ///   - panelID: The panel's stable identifier.
-    ///   - mode: The target display mode.
-    public func movePanel(_ panelID: String, to mode: PanelDisplayMode) {
-        closePanel(panelID)
-        setDisplayMode(mode, for: panelID)
-        openPanel(panelID)
+    /// Use this to "pop out" a panel from the dock or tabbed window into a floating window.
+    ///
+    /// - Parameter panelID: The panel's stable identifier.
+    ///
+    /// Since 0.4.0
+    public func popOutPanel(_ panelID: String) {
+        guard let panel = panel(for: panelID) else { return }
+        openStandalonePanelIDs.insert(panelID)
+        windowManager.open(panel: panel)
+    }
+
+    /// Close a popped-out standalone window.
+    ///
+    /// - Parameter panelID: The panel's stable identifier.
+    ///
+    /// Since 0.4.0
+    public func closePopOut(_ panelID: String) {
+        openStandalonePanelIDs.remove(panelID)
+        windowManager.close(panelID: panelID)
     }
 
     // MARK: - Private
 
-    private func key(_ suffix: String) -> String {
+    func key(_ suffix: String) -> String {
         "\(keyPrefix).\(suffix)"
     }
 
-    private func loadPersistedPanelModes() {
-        // Modes are loaded lazily in displayMode(for:)
+    /// Migrate legacy per-panel display modes to the new global display mode.
+    ///
+    /// Scans for `{prefix}.panelMode.*` keys, determines the dominant mode,
+    /// and maps it to the corresponding global `DevToolsDisplayMode`. Cleans up
+    /// the old keys after migration.
+    private func migratePerPanelModesToGlobalIfNeeded() {
+        let defaults = UserDefaults.standard
+        let prefix = key("panelMode.")
+
+        // Only migrate if we haven't already set a global display mode
+        guard defaults.string(forKey: key("displayMode")) == nil else { return }
+
+        // Collect all persisted per-panel modes
+        let allKeys = defaults.dictionaryRepresentation().keys
+        let panelModeKeys = allKeys.filter { $0.hasPrefix(prefix) }
+
+        guard !panelModeKeys.isEmpty else { return }
+
+        var counts: [String: Int] = [:]
+        for modeKey in panelModeKeys {
+            if let raw = defaults.string(forKey: modeKey) {
+                counts[raw, default: 0] += 1
+            }
+        }
+
+        // Map dominant per-panel mode to global mode
+        let dominant = counts.max(by: { $0.value < $1.value })?.key ?? "standalone"
+        let globalMode: DevToolsDisplayMode
+        switch dominant {
+        case "tabbed": globalMode = .windowed
+        case "docked": globalMode = .docked
+        default: globalMode = .separateWindows
+        }
+
+        defaults.set(globalMode.rawValue, forKey: key("displayMode"))
+
+        // Clean up legacy keys
+        for modeKey in panelModeKeys {
+            defaults.removeObject(forKey: modeKey)
+        }
     }
 }
 

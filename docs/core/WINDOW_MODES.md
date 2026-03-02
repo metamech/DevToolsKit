@@ -3,36 +3,19 @@
 [< Panels](PANELS.md) | [Index](../INDEX.md) | [Export >](EXPORT.md)
 
 > **Module:** `DevToolsKit`
+> **Since:** 0.4.0 (global display mode)
 
-Panels can display in three modes. Change at runtime via `movePanel(_:to:)` or context menus.
+All panels share a single global display mode controlled by `manager.displayMode`. Individual panels can be "popped out" to standalone windows without changing the global mode.
 
-## Standalone
+## Display Modes
 
-Each panel gets its own `NSWindow` with frame autosave.
-
-```swift
-manager.openPanel("devtools.environment")
-// or
-manager.setDisplayMode(.standalone, for: "devtools.environment")
-manager.openPanel("devtools.environment")
-```
-
-## Tabbed
-
-Multiple panels share a single window with a horizontal tab bar. Open with **⌘⌥⇧D** or:
-
-```swift
-manager.setDisplayMode(.tabbed, for: "myapp.debug")
-manager.openPanel("myapp.debug")
-```
-
-Context menu per tab: Pop Out to Standalone, Move to Dock, Close.
-
-## Docked
+### Docked
 
 Panels appear in a split view alongside your app content via the `.devToolsDock(_:)` modifier.
 
 ```swift
+manager.displayMode = .docked
+
 ContentView()
     .devToolsDock(manager)
 ```
@@ -44,16 +27,63 @@ manager.dockPosition = .bottom   // .bottom, .right, .left
 manager.isDockVisible = true
 ```
 
-The dock toolbar includes a position picker, pop-out button, and close button. Multiple docked panels show a tab bar.
+The dock toolbar includes a position picker, pop-out button, and close button. All registered panels appear as tabs in the dock.
 
-## Transitions
+### Windowed (default)
+
+All panels share a single tabbed `NSWindow`. This is the default mode.
 
 ```swift
-manager.movePanel("devtools.log", to: .standalone)  // Dock → Standalone
-manager.movePanel("devtools.log", to: .tabbed)      // Standalone → Tabbed
-manager.movePanel("devtools.log", to: .docked)       // Tabbed → Dock
+manager.displayMode = .windowed
+manager.openPanel("devtools.log")
+```
+
+Open all panels at once with **⌘⌥⇧D** or programmatically:
+
+```swift
+for panel in manager.panels {
+    manager.openPanel(panel.id)
+}
+```
+
+### Separate Windows
+
+Each panel opens in its own standalone `NSWindow` with frame autosave.
+
+```swift
+manager.displayMode = .separateWindows
+manager.openPanel("devtools.environment")
+```
+
+## Pop Out
+
+Pop a panel into a standalone window without changing the global mode:
+
+```swift
+manager.popOutPanel("devtools.log")  // Opens standalone window
+manager.closePopOut("devtools.log")  // Closes the standalone window
+```
+
+Context menus in the tab bar and dock include "Pop Out to Window".
+
+## Mode Switching
+
+Change the global mode at runtime. The Developer menu includes a Display Mode picker:
+
+```swift
+manager.displayMode = .docked          // Switch to dock
+manager.displayMode = .windowed        // Switch to tabbed window
+manager.displayMode = .separateWindows // Switch to individual windows
 ```
 
 ## Persistence
 
-Display modes, dock position, dock visibility, and active panel selections persist to `UserDefaults` under keys prefixed with the manager's `keyPrefix`.
+The global display mode, dock position, dock visibility, and active panel selections persist to `UserDefaults` under keys prefixed with the manager's `keyPrefix`.
+
+## Migration from Per-Panel Modes
+
+Pre-0.4.0 versions used per-panel display modes (`.standalone`, `.tabbed`, `.docked`). On first launch after upgrading, the manager automatically migrates:
+
+- Scans `{prefix}.panelMode.*` UserDefaults keys
+- Maps the dominant per-panel mode to the new global mode (tabbed → windowed, docked → docked, standalone → separateWindows)
+- Cleans up legacy keys

@@ -17,7 +17,7 @@ public final class DevToolsLogStore: Sendable {
     public var filteredEntries: [DevToolsLogEntry]  // computed
 
     // Filters (bindable)
-    public var filterLevel: DevToolsLogLevel     // default: .debug
+    public var filterLevel: DevToolsLogLevel     // default: .trace
     public var filterSource: String?             // default: nil (all)
     public var searchText: String                // default: ""
 

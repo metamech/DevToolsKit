@@ -47,7 +47,8 @@ logger.error("Connection failed")
 
 | swift-log Level | DevToolsLogLevel |
 |----------------|------------------|
-| trace, debug | `.debug` |
+| trace | `.trace` |
+| debug | `.debug` |
 | info, notice | `.info` |
 | warning | `.warning` |
 | error, critical | `.error` |
@@ -66,7 +67,7 @@ logStore.append(DevToolsLogEntry(
 
 ## Log Panel Features (⌘⌥L)
 
-- **Level filter** — Segmented picker: Debug, Info, Warning, Error
+- **Level filter** — Segmented picker: All, Debug, Info, Warning, Error
 - **Source filter** — Dropdown of all known sources
 - **Search** — Full-text search across messages
 - **Auto-scroll** — Follows new entries in real time
@@ -78,9 +79,28 @@ logStore.append(DevToolsLogEntry(
 `DevToolsLogStore` exposes bindable filter state:
 
 ```swift
+logStore.filterLevel = .trace       // Show all entries (default)
 logStore.filterLevel = .warning     // Show warning and above
 logStore.filterSource = "network"   // Show only "network" source
 logStore.searchText = "timeout"     // Full-text search
 ```
 
 `filteredEntries` and `knownSources` are computed properties that update automatically.
+
+## Log Panel Columns
+
+The log panel displays four columns: **Time**, **Level**, **Source**, and **Message**.
+
+### Resizable Columns
+
+Drag the column dividers between headers to resize. Column widths persist to UserDefaults under keys:
+
+- `{keyPrefix}.logColumn.timestamp` — default 85pt
+- `{keyPrefix}.logColumn.level` — default 50pt
+- `{keyPrefix}.logColumn.source` — default 160pt
+
+The message column fills remaining space.
+
+### Source Truncation
+
+Reverse-DNS source labels (e.g., `com.metamech.maccad.canvas.view`) are automatically truncated to fit the source column width. Leading dot-separated components are stripped first, always preserving at least the last two components. Hover over a truncated source to see the full label in a tooltip.

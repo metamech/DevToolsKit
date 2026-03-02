@@ -14,10 +14,6 @@ struct DevToolsDockView: View {
         }
     }
 
-    private var dockedPanels: [any DevToolPanel] {
-        manager.panels.filter { manager.displayMode(for: $0.id) == .docked }
-    }
-
     private var dockToolbar: some View {
         HStack(spacing: 8) {
             Text("Developer Tools")
@@ -38,7 +34,7 @@ struct DevToolsDockView: View {
 
             Button {
                 if let panelID = manager.activeDockPanelID {
-                    manager.movePanel(panelID, to: .standalone)
+                    manager.popOutPanel(panelID)
                 }
             } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
@@ -63,7 +59,7 @@ struct DevToolsDockView: View {
     private var tabBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
-                ForEach(dockedPanels, id: \.id) { panel in
+                ForEach(manager.panels, id: \.id) { panel in
                     Button {
                         manager.activeDockPanelID = panel.id
                     } label: {
@@ -85,10 +81,7 @@ struct DevToolsDockView: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button("Pop Out to Window") {
-                            manager.movePanel(panel.id, to: .standalone)
-                        }
-                        Button("Move to Tabbed View") {
-                            manager.movePanel(panel.id, to: .tabbed)
+                            manager.popOutPanel(panel.id)
                         }
                     }
                 }
@@ -104,7 +97,7 @@ struct DevToolsDockView: View {
             let panel = manager.panel(for: activeID)
         {
             panel.makeBody()
-        } else if let firstPanel = dockedPanels.first {
+        } else if let firstPanel = manager.panels.first {
             firstPanel.makeBody()
                 .onAppear {
                     manager.activeDockPanelID = firstPanel.id
@@ -113,7 +106,7 @@ struct DevToolsDockView: View {
             ContentUnavailableView(
                 "No Docked Panels",
                 systemImage: "rectangle.bottomhalf.inset.filled",
-                description: Text("Move panels to the dock to see them here.")
+                description: Text("Register panels to see them here.")
             )
         }
     }

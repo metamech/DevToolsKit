@@ -1,18 +1,43 @@
+import AppKit
 import DevToolsKit
 import SwiftUI
 
-/// Log viewer UI showing aggregated, filterable log entries.
+/// Log viewer UI showing aggregated, filterable log entries with resizable columns.
 public struct LogPanelView: View {
     @Bindable var logStore: DevToolsLogStore
     @State private var autoScroll = true
+    @State private var timestampWidth: CGFloat
+    @State private var levelWidth: CGFloat
+    @State private var sourceWidth: CGFloat
 
-    public init(logStore: DevToolsLogStore) {
+    private let keyPrefix: String
+
+    private static let defaultTimestampWidth: CGFloat = 85
+    private static let defaultLevelWidth: CGFloat = 50
+    private static let defaultSourceWidth: CGFloat = 160
+
+    /// - Parameters:
+    ///   - logStore: The shared log store to display entries from.
+    ///   - keyPrefix: UserDefaults key prefix for persisting column widths; defaults to `"devtools"`.
+    public init(logStore: DevToolsLogStore, keyPrefix: String = "devtools") {
         self.logStore = logStore
+        self.keyPrefix = keyPrefix
+
+        let defaults = UserDefaults.standard
+        let tw = defaults.double(forKey: "\(keyPrefix).logColumn.timestamp")
+        let lw = defaults.double(forKey: "\(keyPrefix).logColumn.level")
+        let sw = defaults.double(forKey: "\(keyPrefix).logColumn.source")
+
+        _timestampWidth = State(initialValue: tw > 0 ? tw : Self.defaultTimestampWidth)
+        _levelWidth = State(initialValue: lw > 0 ? lw : Self.defaultLevelWidth)
+        _sourceWidth = State(initialValue: sw > 0 ? sw : Self.defaultSourceWidth)
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             toolbar
+            Divider()
+            columnHeader
             Divider()
 
             if logStore.filteredEntries.isEmpty {
@@ -24,10 +49,15 @@ public struct LogPanelView: View {
             } else {
                 ScrollViewReader { proxy in
                     List(logStore.filteredEntries) { entry in
-                        LogEntryRow(entry: entry)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-                            .id(entry.id)
+                        LogEntryRow(
+                            entry: entry,
+                            timestampWidth: timestampWidth,
+                            levelWidth: levelWidth,
+                            sourceWidth: sourceWidth
+                        )
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+                        .id(entry.id)
                     }
                     .listStyle(.plain)
                     .font(.system(.caption, design: .monospaced))
@@ -40,18 +70,52 @@ public struct LogPanelView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 400)
+        .onChange(of: timestampWidth) { _, value in
+            UserDefaults.standard.set(value, forKey: "\(keyPrefix).logColumn.timestamp")
+        }
+        .onChange(of: levelWidth) { _, value in
+            UserDefaults.standard.set(value, forKey: "\(keyPrefix).logColumn.level")
+        }
+        .onChange(of: sourceWidth) { _, value in
+            UserDefaults.standard.set(value, forKey: "\(keyPrefix).logColumn.source")
+        }
+    }
+
+    private var columnHeader: some View {
+        HStack(spacing: 0) {
+            Text("Time")
+                .frame(width: timestampWidth, alignment: .leading)
+            ColumnDivider(width: $timestampWidth, minWidth: 60)
+
+            Text("Level")
+                .frame(width: levelWidth, alignment: .leading)
+            ColumnDivider(width: $levelWidth, minWidth: 36)
+
+            Text("Source")
+                .frame(width: sourceWidth, alignment: .leading)
+            ColumnDivider(width: $sourceWidth, minWidth: 60)
+
+            Text("Message")
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.system(.caption2, design: .monospaced, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.bar)
     }
 
     private var toolbar: some View {
         HStack(spacing: 12) {
             Picker("Level", selection: $logStore.filterLevel) {
+                Text("All").tag(DevToolsLogLevel.trace)
                 Text("Debug").tag(DevToolsLogLevel.debug)
                 Text("Info").tag(DevToolsLogLevel.info)
                 Text("Warning").tag(DevToolsLogLevel.warning)
                 Text("Error").tag(DevToolsLogLevel.error)
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
+            .frame(maxWidth: 380)
 
             Picker("Source", selection: $logStore.filterSource) {
                 Text("All").tag(String?.none)
@@ -85,10 +149,51 @@ public struct LogPanelView: View {
     }
 }
 
+// MARK: - Column Divider
+
+/// Draggable divider handle for resizing log columns.
+private struct ColumnDivider: View {
+    @Binding var width: CGFloat
+    let minWidth: CGFloat
+    @State private var startWidth: CGFloat = 0
+    @State private var isDragging: Bool = false
+
+    var body: some View {
+        Rectangle()
+            .fill(isDragging ? Color.accentColor : Color.gray.opacity(0.3))
+            .frame(width: 4, height: 14)
+            .contentShape(Rectangle().inset(by: -4))
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        if !isDragging {
+                            startWidth = width
+                            isDragging = true
+                        }
+                        width = max(minWidth, startWidth + value.translation.width)
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                    }
+            )
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .padding(.horizontal, 2)
+    }
+}
+
 // MARK: - Log Entry Row
 
 struct LogEntryRow: View {
     let entry: DevToolsLogEntry
+    let timestampWidth: CGFloat
+    let levelWidth: CGFloat
+    let sourceWidth: CGFloat
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -100,7 +205,7 @@ struct LogEntryRow: View {
         HStack(alignment: .top, spacing: 8) {
             Text(Self.timeFormatter.string(from: entry.timestamp))
                 .foregroundStyle(.secondary)
-                .frame(width: 85, alignment: .leading)
+                .frame(width: timestampWidth, alignment: .leading)
 
             Text(levelText)
                 .font(.system(.caption2, design: .monospaced, weight: .bold))
@@ -108,13 +213,15 @@ struct LogEntryRow: View {
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1)
                 .background(levelColor, in: RoundedRectangle(cornerRadius: 3))
-                .frame(width: 50)
+                .frame(width: levelWidth)
 
-            Text(entry.source)
+            Text(truncateReverseDNS(entry.source, fitting: sourceWidth))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .leading)
+                .frame(width: sourceWidth, alignment: .leading)
                 .lineLimit(1)
+                .truncationMode(.head)
+                .help(entry.source)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.message)
@@ -133,6 +240,7 @@ struct LogEntryRow: View {
 
     private var levelText: String {
         switch entry.level {
+        case .trace: "TRC"
         case .debug: "DBG"
         case .info: "INF"
         case .warning: "WRN"
@@ -142,10 +250,49 @@ struct LogEntryRow: View {
 
     private var levelColor: Color {
         switch entry.level {
+        case .trace: .purple
         case .debug: .gray
         case .info: .blue
         case .warning: .orange
         case .error: .red
         }
     }
+}
+
+// MARK: - Reverse-DNS Truncation
+
+/// Truncate a reverse-DNS source string to fit within a given width.
+///
+/// Removes leading dot-separated components until the text fits, preserving
+/// at least the last two components. Single-component strings are returned as-is.
+///
+/// - Parameters:
+///   - source: The full source string (e.g., `"com.metamech.maccad.canvas.view"`).
+///   - width: The available width in points.
+/// - Returns: The truncated source (e.g., `"maccad.canvas.view"`).
+func truncateReverseDNS(_ source: String, fitting width: CGFloat) -> String {
+    let font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
+    let attributes: [NSAttributedString.Key: Any] = [.font: font]
+
+    let fullSize = (source as NSString).size(withAttributes: attributes)
+    if fullSize.width <= width {
+        return source
+    }
+
+    let components = source.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+    guard components.count > 2 else {
+        return source
+    }
+
+    // Strip leading components, keeping at least 2
+    for dropCount in 1...(components.count - 2) {
+        let truncated = components.dropFirst(dropCount).joined(separator: ".")
+        let size = (truncated as NSString).size(withAttributes: attributes)
+        if size.width <= width {
+            return truncated
+        }
+    }
+
+    // Return last 2 components as minimum
+    return components.suffix(2).joined(separator: ".")
 }

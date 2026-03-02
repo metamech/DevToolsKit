@@ -42,12 +42,12 @@ public final class DevToolsManager: Sendable {
     public func unregister(panelID: String)
     public func panel(for id: String) -> (any DevToolPanel)?
 
-    // Display modes
-    public func setDisplayMode(_ mode: PanelDisplayMode, for panelID: String)
-    public func displayMode(for panelID: String) -> PanelDisplayMode
+    // Global display mode (since 0.4.0)
+    public var displayMode: DevToolsDisplayMode   // default: .windowed
     public func openPanel(_ panelID: String)
     public func closePanel(_ panelID: String)
-    public func movePanel(_ panelID: String, to mode: PanelDisplayMode)
+    public func popOutPanel(_ panelID: String)    // standalone without changing global mode
+    public func closePopOut(_ panelID: String)
 
     // Settings (persisted to UserDefaults)
     public var isDeveloperMode: Bool
@@ -69,8 +69,8 @@ public final class DevToolsManager: Sendable {
 ## Enums
 
 ```swift
-public enum PanelDisplayMode: String, Sendable, Codable {
-    case standalone, tabbed, docked
+public enum DevToolsDisplayMode: String, Sendable, Codable, CaseIterable {  // since 0.4.0
+    case docked, windowed, separateWindows
 }
 
 public enum DockPosition: String, Sendable, Codable {
@@ -78,7 +78,7 @@ public enum DockPosition: String, Sendable, Codable {
 }
 
 public enum DevToolsLogLevel: String, Sendable, Codable, Comparable, CaseIterable {
-    case debug, info, warning, error
+    case trace, debug, info, warning, error
 }
 ```
 

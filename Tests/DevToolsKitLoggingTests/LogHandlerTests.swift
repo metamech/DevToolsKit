@@ -37,7 +37,7 @@ struct LogHandlerTests {
         handler.logLevel = .trace
 
         let cases: [(Logging.Logger.Level, DevToolsLogLevel)] = [
-            (.trace, .debug),
+            (.trace, .trace),
             (.debug, .debug),
             (.info, .info),
             (.notice, .info),

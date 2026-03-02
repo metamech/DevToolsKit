@@ -18,13 +18,17 @@ public struct LogPanel: DevToolPanel {
     public let minimumSize = CGSize(width: 600, height: 400)
 
     private let logStore: DevToolsLogStore
+    private let keyPrefix: String
 
-    /// - Parameter logStore: The shared log store to display entries from.
-    public init(logStore: DevToolsLogStore) {
+    /// - Parameters:
+    ///   - logStore: The shared log store to display entries from.
+    ///   - keyPrefix: UserDefaults key prefix for persisting column widths; defaults to `"devtools"`.
+    public init(logStore: DevToolsLogStore, keyPrefix: String = "devtools") {
         self.logStore = logStore
+        self.keyPrefix = keyPrefix
     }
 
     public func makeBody() -> AnyView {
-        AnyView(LogPanelView(logStore: logStore))
+        AnyView(LogPanelView(logStore: logStore, keyPrefix: keyPrefix))
     }
 }

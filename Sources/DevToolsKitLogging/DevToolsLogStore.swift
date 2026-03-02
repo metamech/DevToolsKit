@@ -10,7 +10,7 @@ public final class DevToolsLogStore: Sendable {
     public private(set) var entries: [DevToolsLogEntry] = []
 
     /// Filter by minimum level.
-    public var filterLevel: DevToolsLogLevel = .debug
+    public var filterLevel: DevToolsLogLevel = .trace
 
     /// Filter by source tag (nil = all).
     public var filterSource: String?

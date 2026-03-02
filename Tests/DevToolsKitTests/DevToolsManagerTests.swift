@@ -85,56 +85,72 @@ struct DevToolsManagerTests {
         #expect(manager.logLevel == .debug)
     }
 
-    // MARK: - Panel Display Modes
+    // MARK: - Global Display Mode
 
-    @Test func defaultDisplayModeIsStandalone() {
+    @Test func globalDisplayModeDefaultsToWindowed() {
         let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
-        #expect(manager.displayMode(for: "any-panel") == .standalone)
+        #expect(manager.displayMode == .windowed)
     }
 
-    @Test func setAndGetDisplayMode() {
-        let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
+    @Test func setGlobalDisplayMode_persists() {
+        let prefix = "test.\(UUID().uuidString)"
+        let manager = DevToolsManager(keyPrefix: prefix)
 
-        manager.setDisplayMode(.tabbed, for: "panel-1")
-        #expect(manager.displayMode(for: "panel-1") == .tabbed)
+        manager.displayMode = .docked
+        #expect(manager.displayMode == .docked)
 
-        manager.setDisplayMode(.docked, for: "panel-1")
-        #expect(manager.displayMode(for: "panel-1") == .docked)
+        manager.displayMode = .separateWindows
+        #expect(manager.displayMode == .separateWindows)
+
+        // Verify persistence
+        let raw = UserDefaults.standard.string(forKey: "\(prefix).displayMode")
+        #expect(raw == "separateWindows")
     }
 
-    // MARK: - Panel Actions
-
-    @Test func openStandalonePanel() {
+    @Test func openPanel_windowed_setsTabbedState() {
         let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
         manager.register(TestPanel(id: "test-1", title: "Test"))
-
-        manager.openPanel("test-1")
-        #expect(manager.openStandalonePanelIDs.contains("test-1"))
-    }
-
-    @Test func openTabbedPanel() {
-        let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
-        manager.register(TestPanel(id: "test-1", title: "Test"))
-        manager.setDisplayMode(.tabbed, for: "test-1")
+        manager.displayMode = .windowed
 
         manager.openPanel("test-1")
         #expect(manager.activeTabbedPanelID == "test-1")
         #expect(manager.isTabbedWindowOpen == true)
     }
 
-    @Test func openDockedPanel() {
+    @Test func openPanel_docked_setsDockState() {
         let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
         manager.register(TestPanel(id: "test-1", title: "Test"))
-        manager.setDisplayMode(.docked, for: "test-1")
+        manager.displayMode = .docked
 
         manager.openPanel("test-1")
         #expect(manager.activeDockPanelID == "test-1")
         #expect(manager.isDockVisible == true)
     }
 
+    @Test func openPanel_separateWindows_insertsStandaloneID() {
+        let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
+        manager.register(TestPanel(id: "test-1", title: "Test"))
+        manager.displayMode = .separateWindows
+
+        manager.openPanel("test-1")
+        #expect(manager.openStandalonePanelIDs.contains("test-1"))
+    }
+
+    @Test func popOutPanel_insertsStandaloneID() {
+        let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
+        manager.register(TestPanel(id: "test-1", title: "Test"))
+        manager.displayMode = .windowed
+
+        manager.popOutPanel("test-1")
+        #expect(manager.openStandalonePanelIDs.contains("test-1"))
+        // Global mode unchanged
+        #expect(manager.displayMode == .windowed)
+    }
+
     @Test func closePanel() {
         let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
         manager.register(TestPanel(id: "test-1", title: "Test"))
+        manager.displayMode = .separateWindows
 
         manager.openPanel("test-1")
         #expect(manager.openStandalonePanelIDs.contains("test-1"))
@@ -143,17 +159,48 @@ struct DevToolsManagerTests {
         #expect(!manager.openStandalonePanelIDs.contains("test-1"))
     }
 
-    @Test func movePanelBetweenModes() {
-        let manager = DevToolsManager(keyPrefix: "test.\(UUID().uuidString)")
-        manager.register(TestPanel(id: "test-1", title: "Test"))
+    // MARK: - Migration
 
-        manager.openPanel("test-1")
-        #expect(manager.openStandalonePanelIDs.contains("test-1"))
+    @Test func migrationFromPerPanelTabbedToWindowed() {
+        let prefix = "test.\(UUID().uuidString)"
+        let defaults = UserDefaults.standard
 
-        manager.movePanel("test-1", to: .docked)
-        #expect(!manager.openStandalonePanelIDs.contains("test-1"))
-        #expect(manager.activeDockPanelID == "test-1")
-        #expect(manager.displayMode(for: "test-1") == .docked)
+        // Simulate legacy per-panel modes (mostly tabbed)
+        defaults.set("tabbed", forKey: "\(prefix).panelMode.panel1")
+        defaults.set("tabbed", forKey: "\(prefix).panelMode.panel2")
+        defaults.set("standalone", forKey: "\(prefix).panelMode.panel3")
+
+        let manager = DevToolsManager(keyPrefix: prefix)
+
+        // Dominant mode was "tabbed" → should migrate to ".windowed"
+        #expect(manager.displayMode == .windowed)
+
+        // Legacy keys cleaned up
+        #expect(defaults.string(forKey: "\(prefix).panelMode.panel1") == nil)
+        #expect(defaults.string(forKey: "\(prefix).panelMode.panel2") == nil)
+        #expect(defaults.string(forKey: "\(prefix).panelMode.panel3") == nil)
+    }
+
+    @Test func migrationFromPerPanelDockedToDocked() {
+        let prefix = "test.\(UUID().uuidString)"
+        let defaults = UserDefaults.standard
+
+        defaults.set("docked", forKey: "\(prefix).panelMode.panel1")
+        defaults.set("docked", forKey: "\(prefix).panelMode.panel2")
+
+        let manager = DevToolsManager(keyPrefix: prefix)
+        #expect(manager.displayMode == .docked)
+    }
+
+    @Test func migrationFallbackToSeparateWindows() {
+        let prefix = "test.\(UUID().uuidString)"
+        let defaults = UserDefaults.standard
+
+        defaults.set("standalone", forKey: "\(prefix).panelMode.panel1")
+        defaults.set("standalone", forKey: "\(prefix).panelMode.panel2")
+
+        let manager = DevToolsManager(keyPrefix: prefix)
+        #expect(manager.displayMode == .separateWindows)
     }
 
     // MARK: - Dock State

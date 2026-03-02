@@ -86,3 +86,21 @@ logStore.searchText = "timeout"     // Full-text search
 ```
 
 `filteredEntries` and `knownSources` are computed properties that update automatically.
+
+## Log Panel Columns
+
+The log panel displays four columns: **Time**, **Level**, **Source**, and **Message**.
+
+### Resizable Columns
+
+Drag the column dividers between headers to resize. Column widths persist to UserDefaults under keys:
+
+- `{keyPrefix}.logColumn.timestamp` — default 85pt
+- `{keyPrefix}.logColumn.level` — default 50pt
+- `{keyPrefix}.logColumn.source` — default 160pt
+
+The message column fills remaining space.
+
+### Source Truncation
+
+Reverse-DNS source labels (e.g., `com.metamech.maccad.canvas.view`) are automatically truncated to fit the source column width. Leading dot-separated components are stripped first, always preserving at least the last two components. Hover over a truncated source to see the full label in a tooltip.

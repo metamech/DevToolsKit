@@ -89,16 +89,6 @@ public struct DevToolsCommands: Commands {
     }
 
     private func openPanel(_ panel: any DevToolPanel) {
-        switch manager.displayMode {
-        case .docked:
-            manager.activeDockPanelID = panel.id
-            manager.isDockVisible = true
-        case .windowed:
-            manager.activeTabbedPanelID = panel.id
-            manager.isTabbedWindowOpen = true
-        case .separateWindows:
-            manager.windowManager.open(panel: panel)
-            manager.openStandalonePanelIDs.insert(panel.id)
-        }
+        manager.openPanel(panel.id)
     }
 }

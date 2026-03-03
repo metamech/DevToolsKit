@@ -103,6 +103,7 @@ public struct FeatureFlagsPanelView: View {
                             ? "Register flags with LicensingManager to see them here."
                             : "No flags match your search.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     ForEach(filtered, id: \.0) { category, states in

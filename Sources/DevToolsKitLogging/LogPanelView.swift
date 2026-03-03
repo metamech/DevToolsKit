@@ -46,6 +46,7 @@ public struct LogPanelView: View {
                     systemImage: "doc.text",
                     description: Text("Log entries will appear here when the app generates output.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     List(logStore.filteredEntries) { entry in

@@ -21,6 +21,7 @@ public struct PerformancePanelView: View {
                     systemImage: "gauge",
                     description: Text("Run operations to collect performance metrics.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {

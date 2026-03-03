@@ -128,6 +128,7 @@ When making changes:
     - squash-merge the PR main
     - delete feature branch (remote & local)
     - checkout and pull main
+- All git tags and GitHub releases MUST use `v` prefix (e.g., `v0.2.2`) per Swift SPM naming convention
 
 ## Style
 

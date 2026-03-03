@@ -61,6 +61,7 @@ struct PermissionAuditPanelView: View {
                     systemImage: "lock.shield",
                     description: Text("Permission decisions will appear here.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(filteredEntries) { entry in
                     HStack {

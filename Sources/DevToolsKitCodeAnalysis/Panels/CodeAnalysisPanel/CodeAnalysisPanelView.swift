@@ -23,6 +23,7 @@ struct CodeAnalysisPanelView: View {
                 systemImage: "magnifyingglass.circle",
                 description: Text("Run a code analysis to see results here.")
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

@@ -12,6 +12,7 @@ struct MetricsReportView: View {
                     systemImage: "chart.bar.doc.horizontal",
                     description: Text("Metrics summaries will appear here once data is recorded.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Table(summaries) {
                     TableColumn("Label") { summary in

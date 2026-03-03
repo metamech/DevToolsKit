@@ -35,6 +35,7 @@ struct MetricsLiveView: View {
                     systemImage: "chart.bar",
                     description: Text("Metrics will appear here when the app records data via swift-metrics.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: $selectedIdentifier) {
                     ForEach(groupedMetrics, id: \.prefix) { group in

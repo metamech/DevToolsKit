@@ -22,9 +22,12 @@ public final class MetricsDatabase: Sendable {
 
     /// Execute a ``DatabaseQuery`` and return the result.
     public func execute(_ query: DatabaseQuery) -> QueryResult {
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         do {
-            return try QueryExecutor.execute(query, context: context)
+            return try QueryExecutor.execute(
+                query, context: context,
+                unflushedEntries: storage.unflushedEntries
+            )
         } catch {
             return QueryResult(rows: [])
         }
@@ -61,7 +64,7 @@ public final class MetricsDatabase: Sendable {
 
     /// Discover known metrics, optionally filtered by label prefix.
     public func discover(prefix: String? = nil) -> [MetricDefinition] {
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<MetricDefinition>(
             sortBy: [SortDescriptor(\.label)]
         )

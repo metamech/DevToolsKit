@@ -58,7 +58,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     }
 
     public func query(_ query: MetricsQuery) -> [MetricEntry] {
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         var descriptor = FetchDescriptor<MetricObservation>()
         var predicates: [Predicate<MetricObservation>] = []
 
@@ -146,7 +146,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
 
     public func knownMetrics() -> [MetricIdentifier] {
         // Merge persisted definitions with in-memory known identifiers
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<MetricDefinition>()
         let definitions = (try? context.fetch(descriptor)) ?? []
 
@@ -167,7 +167,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         buffer.removeAll()
         knownIdentifiers.removeAll()
 
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         do {
             try context.delete(model: MetricObservation.self)
             try context.delete(model: MetricDimension.self)
@@ -182,7 +182,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     public func purge(olderThan date: Date) {
         buffer.removeAll { $0.timestamp < date }
 
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         let cutoff = date
         do {
             try context.delete(
@@ -209,71 +209,68 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     }
 
     public var entryCount: Int {
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         let count = (try? context.fetchCount(FetchDescriptor<MetricObservation>())) ?? 0
         return count + buffer.count
     }
 
     // MARK: - Flushing
 
+    /// The current unflushed buffer entries.
+    var unflushedEntries: [MetricEntry] { buffer }
+
     /// Force-flush the current buffer to persistent storage.
+    @discardableResult
     public func flushNow() {
         guard !buffer.isEmpty else { return }
         let entries = buffer
         buffer.removeAll()
 
-        let container = modelContainer
-        Task.detached {
-            let context = ModelContext(container)
-            for entry in entries {
-                let observation = MetricObservation(entry: entry)
-                context.insert(observation)
+        let context = modelContainer.mainContext
+        for entry in entries {
+            let observation = MetricObservation(entry: entry)
+            context.insert(observation)
 
-                // Upsert MetricDefinition
-                let label = entry.label
-                let typeRaw = entry.type.rawValue
-                var defDescriptor = FetchDescriptor<MetricDefinition>(
-                    predicate: #Predicate { $0.label == label && $0.typeRawValue == typeRaw }
+            // Upsert MetricDefinition
+            let label = entry.label
+            let typeRaw = entry.type.rawValue
+            var defDescriptor = FetchDescriptor<MetricDefinition>(
+                predicate: #Predicate { $0.label == label && $0.typeRawValue == typeRaw }
+            )
+            defDescriptor.fetchLimit = 1
+
+            if let existing = try? context.fetch(defDescriptor).first {
+                existing.lastSeenAt = entry.timestamp
+                existing.totalObservations += 1
+                let dimKeys = Set(entry.dimensions.map(\.0))
+                let existingKeys = Set(
+                    (try? JSONDecoder().decode([String].self, from: Data(existing.knownDimensionKeysJSON.utf8)))
+                        ?? []
                 )
-                defDescriptor.fetchLimit = 1
-
-                if let existing = try? context.fetch(defDescriptor).first {
-                    existing.lastSeenAt = entry.timestamp
-                    existing.totalObservations += 1
-                    // Merge dimension keys
-                    let dimKeys = Set(entry.dimensions.map(\.0))
-                    let existingKeys = Set(
-                        (try? JSONDecoder().decode([String].self, from: Data(existing.knownDimensionKeysJSON.utf8)))
-                            ?? []
-                    )
-                    let allKeys = existingKeys.union(dimKeys)
-                    if let json = try? JSONEncoder().encode(Array(allKeys).sorted()),
-                       let str = String(data: json, encoding: .utf8)
-                    {
-                        existing.knownDimensionKeysJSON = str
-                    }
-                } else {
-                    let dimKeys = entry.dimensions.map(\.0)
-                    let json = (try? JSONEncoder().encode(dimKeys))
-                        .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-                    let def = MetricDefinition(
-                        label: entry.label,
-                        typeRawValue: entry.type.rawValue,
-                        knownDimensionKeysJSON: json,
-                        firstSeenAt: entry.timestamp,
-                        lastSeenAt: entry.timestamp,
-                        totalObservations: 1
-                    )
-                    context.insert(def)
+                let allKeys = existingKeys.union(dimKeys)
+                if let json = try? JSONEncoder().encode(Array(allKeys).sorted()),
+                   let str = String(data: json, encoding: .utf8)
+                {
+                    existing.knownDimensionKeysJSON = str
                 }
-            }
-
-            try? context.save()
-
-            await MainActor.run {
-                NotificationCenter.default.post(name: .metricsStoreDidFlush, object: nil)
+            } else {
+                let dimKeys = entry.dimensions.map(\.0)
+                let json = (try? JSONEncoder().encode(dimKeys))
+                    .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+                let def = MetricDefinition(
+                    label: entry.label,
+                    typeRawValue: entry.type.rawValue,
+                    knownDimensionKeysJSON: json,
+                    firstSeenAt: entry.timestamp,
+                    lastSeenAt: entry.timestamp,
+                    totalObservations: 1
+                )
+                context.insert(def)
             }
         }
+
+        try? context.save()
+        NotificationCenter.default.post(name: .metricsStoreDidFlush, object: nil)
     }
 
     // MARK: - Private

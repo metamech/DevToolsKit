@@ -13,10 +13,11 @@ import DevToolsKitMetrics
 /// 6. Update metric definitions
 ///
 /// > Since: 0.3.0
-public actor RetentionEngine {
+@MainActor
+public final class RetentionEngine: Sendable {
     private let modelContainer: ModelContainer
     private let policy: RetentionPolicy
-    private var maintenanceTask: Task<Void, Never>?
+    @ObservationIgnored private nonisolated(unsafe) var maintenanceTask: Task<Void, Never>?
 
     /// Creates a retention engine with the given container and policy.
     public init(modelContainer: ModelContainer, policy: RetentionPolicy = .default) {
@@ -24,13 +25,18 @@ public actor RetentionEngine {
         self.policy = policy
     }
 
+    deinit {
+        maintenanceTask?.cancel()
+    }
+
     /// Start the periodic maintenance cycle.
     public func start() {
         guard maintenanceTask == nil else { return }
-        maintenanceTask = Task {
+        let interval = policy.maintenanceInterval
+        maintenanceTask = Task { [weak self] in
             while !Task.isCancelled {
-                await runMaintenanceCycle()
-                try? await Task.sleep(for: .seconds(policy.maintenanceInterval))
+                await self?.runMaintenanceCycle()
+                try? await Task.sleep(for: .seconds(interval))
             }
         }
     }
@@ -42,26 +48,24 @@ public actor RetentionEngine {
     }
 
     /// Run a single maintenance cycle.
-    @MainActor
-    public func runMaintenanceCycle() async {
-        let context = ModelContext(modelContainer)
+    public func runMaintenanceCycle() {
+        let context = modelContainer.mainContext
         let now = Date()
         let calendar = Calendar.current
 
         // 1. Create hourly rollups from raw observations in completed hours
         let hourlyBoundary = calendar.date(bySettingHour: calendar.component(.hour, from: now),
                                            minute: 0, second: 0, of: now) ?? now
-        await createRollups(
+        createRollups(
             context: context,
             granularity: "hourly",
             interval: 3_600,
-            boundary: hourlyBoundary,
-            calendar: calendar
+            boundary: hourlyBoundary
         )
 
         // 2. Create daily rollups from hourly rollups in completed days
         let dailyBoundary = calendar.startOfDay(for: now)
-        await createDailyRollups(context: context, boundary: dailyBoundary)
+        createDailyRollups(context: context, boundary: dailyBoundary)
 
         // 3. Purge raw observations
         let rawCutoff = now.addingTimeInterval(-policy.rawDataTTL)
@@ -87,31 +91,29 @@ public actor RetentionEngine {
         )
 
         // 6. Update metric definitions
-        await updateDefinitions(context: context)
+        updateDefinitions(context: context)
 
         try? context.save()
     }
 
     // MARK: - Hourly Rollups
 
-    @MainActor
     private func createRollups(
         context: ModelContext,
         granularity: String,
         interval: TimeInterval,
-        boundary: Date,
-        calendar: Calendar
-    ) async {
-        // Fetch raw observations before the boundary that haven't been rolled up
-        let gran = granularity
-        var descriptor = FetchDescriptor<MetricObservation>(
-            predicate: #Predicate { $0.timestamp < boundary }
-        )
+        boundary: Date
+    ) {
+        var descriptor = FetchDescriptor<MetricObservation>()
         descriptor.sortBy = [SortDescriptor(\.timestamp)]
 
-        guard let observations = try? context.fetch(descriptor), !observations.isEmpty else { return }
+        let allObservations = (try? context.fetch(descriptor)) ?? []
+        let observations = allObservations.filter { $0.timestamp < boundary }
+        guard !observations.isEmpty else { return }
 
         // Group by (label, typeRawValue, dimensionsKey, bucket)
+        let gran = granularity
+
         var groups: [String: [MetricObservation]] = [:]
         for obs in observations {
             let bucketStart = Date(
@@ -127,7 +129,7 @@ public actor RetentionEngine {
         }
 
         for (key, obs) in groups {
-            let components = key.split(separator: "|", maxSplits: 3)
+            let components = key.split(separator: "|", maxSplits: 3, omittingEmptySubsequences: false)
             guard components.count == 4 else { continue }
 
             let label = String(components[0])
@@ -172,22 +174,22 @@ public actor RetentionEngine {
                 avg: avg
             )
             context.insert(rollup)
+
         }
     }
 
     // MARK: - Daily Rollups
 
-    @MainActor
-    private func createDailyRollups(context: ModelContext, boundary: Date) async {
+    private func createDailyRollups(context: ModelContext, boundary: Date) {
         let gran = "hourly"
+        let bnd = boundary
         var descriptor = FetchDescriptor<MetricRollup>(
-            predicate: #Predicate { $0.granularity == gran && $0.bucketEnd <= boundary }
+            predicate: #Predicate { $0.granularity == gran && $0.bucketEnd <= bnd }
         )
         descriptor.sortBy = [SortDescriptor(\.bucketStart)]
 
         guard let hourlyRollups = try? context.fetch(descriptor), !hourlyRollups.isEmpty else { return }
 
-        // Group by (label, typeRaw, dimsKey, day)
         let calendar = Calendar.current
         var groups: [String: [MetricRollup]] = [:]
         for rollup in hourlyRollups {
@@ -199,7 +201,7 @@ public actor RetentionEngine {
 
         let dailyGran = "daily"
         for (key, rollups) in groups {
-            let components = key.split(separator: "|", maxSplits: 3)
+            let components = key.split(separator: "|", maxSplits: 3, omittingEmptySubsequences: false)
             guard components.count == 4 else { continue }
 
             let label = String(components[0])
@@ -209,7 +211,6 @@ public actor RetentionEngine {
             let dayStart = Date(timeIntervalSinceReferenceDate: dayRef)
             let dayEnd = dayStart.addingTimeInterval(86_400)
 
-            // Check if daily rollup already exists
             let lbl = label
             let dStart = dayStart
             var existingDescriptor = FetchDescriptor<MetricRollup>(
@@ -223,7 +224,6 @@ public actor RetentionEngine {
                 continue
             }
 
-            // Aggregate from hourly: count=sum, sum=sum, min=min-of-mins, max=max-of-maxes, avg=weighted
             let totalCount = rollups.reduce(0) { $0 + $1.count }
             let totalSum = rollups.reduce(0.0) { $0 + $1.sum }
             let minVal = rollups.map(\.min).min() ?? 0
@@ -249,8 +249,7 @@ public actor RetentionEngine {
 
     // MARK: - Definition Updates
 
-    @MainActor
-    private func updateDefinitions(context: ModelContext) async {
+    private func updateDefinitions(context: ModelContext) {
         let descriptor = FetchDescriptor<MetricDefinition>()
         guard let definitions = try? context.fetch(descriptor) else { return }
 

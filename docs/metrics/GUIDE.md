@@ -100,4 +100,4 @@ let buckets = MetricsAggregation.groupByInterval(entries, interval: 60)
 
 ## Storage
 
-`InMemoryMetricsStorage` is a FIFO ring buffer. When `maxEntries` is exceeded, oldest entries are evicted. To implement persistent storage, conform to `MetricsStorage`.
+`InMemoryMetricsStorage` is a FIFO ring buffer. When `maxEntries` is exceeded, oldest entries are evicted. For persistent storage with SwiftData, time-series aggregation, rollups, and retention policies, see [DevToolsKitMetricsStore](../metrics-store/GUIDE.md). To implement a custom storage backend, conform to `MetricsStorage`.

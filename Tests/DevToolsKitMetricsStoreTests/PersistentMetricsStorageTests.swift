@@ -15,7 +15,7 @@ struct PersistentMetricsStorageTests {
         return PersistentMetricsStorage(
             modelContainer: container,
             batchSize: batchSize,
-            flushInterval: 60 // long interval so we control flushing manually
+            flushInterval: 60  // long interval so we control flushing manually
         )
     }
 
@@ -62,12 +62,13 @@ struct PersistentMetricsStorageTests {
         let storage = try makeStorage(batchSize: 3)
 
         for i in 0..<3 {
-            storage.record(MetricEntry(
-                label: "batch",
-                dimensions: [],
-                type: .counter,
-                value: Double(i)
-            ))
+            storage.record(
+                MetricEntry(
+                    label: "batch",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(i)
+                ))
         }
 
         // After recording 3 entries (batch size), buffer should be flushed
@@ -93,24 +94,28 @@ struct PersistentMetricsStorageTests {
         let storage = try makeStorage()
         let now = Date()
 
-        storage.record(MetricEntry(
-            timestamp: now.addingTimeInterval(-100),
-            label: "t", dimensions: [], type: .counter, value: 1
-        ))
-        storage.record(MetricEntry(
-            timestamp: now.addingTimeInterval(-50),
-            label: "t", dimensions: [], type: .counter, value: 2
-        ))
-        storage.record(MetricEntry(
-            timestamp: now,
-            label: "t", dimensions: [], type: .counter, value: 3
-        ))
+        storage.record(
+            MetricEntry(
+                timestamp: now.addingTimeInterval(-100),
+                label: "t", dimensions: [], type: .counter, value: 1
+            ))
+        storage.record(
+            MetricEntry(
+                timestamp: now.addingTimeInterval(-50),
+                label: "t", dimensions: [], type: .counter, value: 2
+            ))
+        storage.record(
+            MetricEntry(
+                timestamp: now,
+                label: "t", dimensions: [], type: .counter, value: 3
+            ))
 
-        let results = storage.query(MetricsQuery(
-            label: "t",
-            startDate: now.addingTimeInterval(-75),
-            endDate: now.addingTimeInterval(-25)
-        ))
+        let results = storage.query(
+            MetricsQuery(
+                label: "t",
+                startDate: now.addingTimeInterval(-75),
+                endDate: now.addingTimeInterval(-25)
+            ))
         #expect(results.count == 1)
         #expect(results[0].value == 2)
     }
@@ -122,10 +127,11 @@ struct PersistentMetricsStorageTests {
         storage.record(MetricEntry(label: "d", dimensions: [("env", "prod")], type: .counter, value: 1))
         storage.record(MetricEntry(label: "d", dimensions: [("env", "dev")], type: .counter, value: 2))
 
-        let results = storage.query(MetricsQuery(
-            label: "d",
-            dimensions: [("env", "prod")]
-        ))
+        let results = storage.query(
+            MetricsQuery(
+                label: "d",
+                dimensions: [("env", "prod")]
+            ))
         #expect(results.count == 1)
         #expect(results[0].value == 1)
     }

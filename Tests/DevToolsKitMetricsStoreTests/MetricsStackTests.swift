@@ -29,16 +29,18 @@ struct MetricsStackTests {
     func endToEndRecordAndQuery() throws {
         let stack = try MetricsStack.create(inMemory: true)
 
-        stack.storage.record(MetricEntry(
-            label: "e2e.test",
-            dimensions: [("env", "test")],
-            type: .counter,
-            value: 42
-        ))
+        stack.storage.record(
+            MetricEntry(
+                label: "e2e.test",
+                dimensions: [("env", "test")],
+                type: .counter,
+                value: 42
+            ))
 
-        let result = stack.database.execute(DatabaseQuery(
-            labelFilter: .exact("e2e.test")
-        ))
+        let result = stack.database.execute(
+            DatabaseQuery(
+                labelFilter: .exact("e2e.test")
+            ))
         #expect(result.rows.count == 1)
         #expect(result.rows[0].value == 42)
     }
@@ -48,18 +50,20 @@ struct MetricsStackTests {
         let stack = try MetricsStack.create(inMemory: true, batchSize: 5)
 
         for i in 0..<10 {
-            stack.storage.record(MetricEntry(
-                label: "batch",
-                dimensions: [],
-                type: .counter,
-                value: Double(i)
-            ))
+            stack.storage.record(
+                MetricEntry(
+                    label: "batch",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(i)
+                ))
         }
 
-        let result = stack.database.execute(DatabaseQuery(
-            labelFilter: .exact("batch"),
-            aggregation: .count
-        ))
+        let result = stack.database.execute(
+            DatabaseQuery(
+                labelFilter: .exact("batch"),
+                aggregation: .count
+            ))
         #expect(result.rows[0].value == 10)
     }
 }

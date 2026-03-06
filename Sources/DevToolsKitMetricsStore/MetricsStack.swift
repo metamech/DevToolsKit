@@ -1,6 +1,6 @@
+import DevToolsKitMetrics
 import Foundation
 import SwiftData
-import DevToolsKitMetrics
 
 /// Convenience factory for bootstrapping the full metrics persistence stack.
 ///

@@ -1,6 +1,6 @@
+import DevToolsKitMetrics
 import Foundation
 import SwiftData
-import DevToolsKitMetrics
 
 /// High-level facade for querying the persistent metrics store.
 ///
@@ -85,12 +85,12 @@ public final class MetricsDatabase: Sendable {
             entries = storage.query(MetricsQuery(label: label))
         }
 
-        guard !entries.isEmpty else { return nil }
+        guard let firstEntry = entries.first else { return nil }
 
         let identifier = MetricIdentifier(
             label: label,
             dimensions: [],
-            type: type ?? entries.first!.type
+            type: type ?? firstEntry.type
         )
         return MetricsAggregation.summarize(entries, identifier: identifier)
     }
@@ -105,15 +105,16 @@ public final class MetricsDatabase: Sendable {
         let now = Date()
         let start = now.addingTimeInterval(-interval)
 
-        let entries = storage.query(MetricsQuery(
-            label: label,
-            startDate: start,
-            endDate: now,
-            sort: .timestampAscending
-        ))
+        let entries = storage.query(
+            MetricsQuery(
+                label: label,
+                startDate: start,
+                endDate: now,
+                sort: .timestampAscending
+            ))
 
         guard let first = entries.first, let last = entries.last,
-              entries.count >= 2
+            entries.count >= 2
         else { return nil }
 
         let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)

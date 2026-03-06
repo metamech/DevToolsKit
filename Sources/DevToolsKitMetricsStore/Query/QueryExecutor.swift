@@ -1,6 +1,6 @@
+import DevToolsKitMetrics
 import Foundation
 import SwiftData
-import DevToolsKitMetrics
 
 /// Internal query execution engine.
 ///
@@ -17,10 +17,10 @@ enum QueryExecutor {
     ) throws -> QueryResult {
         // Try rollups first if preferred and applicable
         if query.preferRollups, let timeBucket = query.timeBucket,
-           let agg = query.aggregation,
-           query.groupByDimension == nil,
-           let labelFilter = query.labelFilter,
-           case .exact(let label) = labelFilter
+            let agg = query.aggregation,
+            query.groupByDimension == nil,
+            let labelFilter = query.labelFilter,
+            case .exact(let label) = labelFilter
         {
             let rollupGranularity = rollupGranularity(for: timeBucket)
             if let granularity = rollupGranularity {
@@ -54,7 +54,7 @@ enum QueryExecutor {
                 let label = value
                 predicates.append(#Predicate { $0.label == label })
             case .prefix, .contains:
-                break // filtered in-memory below
+                break  // filtered in-memory below
             }
         }
 
@@ -196,15 +196,16 @@ enum QueryExecutor {
         }
 
         var rows = rollups.map { rollup in
-            let value: Double = switch aggregation {
-            case .sum: rollup.sum
-            case .avg: rollup.avg
-            case .min: rollup.min
-            case .max: rollup.max
-            case .count: Double(rollup.count)
-            case .latest: rollup.avg // best approximation from rollup
-            case .p50, .p95, .p99: .nan // percentiles unavailable from rollups
-            }
+            let value: Double =
+                switch aggregation {
+                case .sum: rollup.sum
+                case .avg: rollup.avg
+                case .min: rollup.min
+                case .max: rollup.max
+                case .count: Double(rollup.count)
+                case .latest: rollup.avg  // best approximation from rollup
+                case .p50, .p95, .p99: .nan  // percentiles unavailable from rollups
+                }
             return QueryResultRow(
                 label: rollup.label,
                 bucketStart: rollup.bucketStart,
@@ -253,13 +254,14 @@ enum QueryExecutor {
                     let values = pairs.map(\.0)
                     let timestamps = pairs.map(\.1)
                     if let agg = aggregation.compute(values, timestamps: timestamps) {
-                        rows.append(QueryResultRow(
-                            label: entries.first?.label ?? "",
-                            dimensionValue: dimValue,
-                            bucketStart: bucket,
-                            value: agg,
-                            count: values.count
-                        ))
+                        rows.append(
+                            QueryResultRow(
+                                label: entries.first?.label ?? "",
+                                dimensionValue: dimValue,
+                                bucketStart: bucket,
+                                value: agg,
+                                count: values.count
+                            ))
                     }
                 }
             }
@@ -279,12 +281,13 @@ enum QueryExecutor {
                 let values = pairs.map(\.0)
                 let timestamps = pairs.map(\.1)
                 if let agg = aggregation.compute(values, timestamps: timestamps) {
-                    rows.append(QueryResultRow(
-                        label: label,
-                        bucketStart: bucket,
-                        value: agg,
-                        count: values.count
-                    ))
+                    rows.append(
+                        QueryResultRow(
+                            label: label,
+                            bucketStart: bucket,
+                            value: agg,
+                            count: values.count
+                        ))
                 }
             }
 
@@ -359,9 +362,13 @@ enum QueryExecutor {
     ) -> [QueryResultRow] {
         guard strategy != .none else { return rows }
         let sortedRows = rows.sorted { ($0.bucketStart ?? .distantPast) < ($1.bucketStart ?? .distantPast) }
-        guard let firstBucket = (startDate.map { timeBucket.bucketStart(for: $0) }
-            ?? sortedRows.first?.bucketStart) else { return rows }
-        let lastBucket = endDate.map { timeBucket.bucketStart(for: $0) }
+        guard
+            let firstBucket =
+                (startDate.map { timeBucket.bucketStart(for: $0) }
+                    ?? sortedRows.first?.bucketStart)
+        else { return rows }
+        let lastBucket =
+            endDate.map { timeBucket.bucketStart(for: $0) }
             ?? sortedRows.last?.bucketStart ?? firstBucket
 
         var existing: [Date: QueryResultRow] = [:]
@@ -381,17 +388,19 @@ enum QueryExecutor {
                 result.append(row)
                 lastValue = row.value
             } else {
-                let fillValue: Double = switch strategy {
-                case .zero: 0
-                case .carryForward: lastValue
-                case .none: 0 // unreachable
-                }
-                result.append(QueryResultRow(
-                    label: label,
-                    bucketStart: current,
-                    value: fillValue,
-                    count: 0
-                ))
+                let fillValue: Double =
+                    switch strategy {
+                    case .zero: 0
+                    case .carryForward: lastValue
+                    case .none: 0  // unreachable
+                    }
+                result.append(
+                    QueryResultRow(
+                        label: label,
+                        bucketStart: current,
+                        value: fillValue,
+                        count: 0
+                    ))
             }
             current = current.addingTimeInterval(interval)
         }

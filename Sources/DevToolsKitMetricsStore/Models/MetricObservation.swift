@@ -1,6 +1,6 @@
+import DevToolsKitMetrics
 import Foundation
 import SwiftData
-import DevToolsKitMetrics
 
 /// A single recorded metric data point persisted via SwiftData.
 ///

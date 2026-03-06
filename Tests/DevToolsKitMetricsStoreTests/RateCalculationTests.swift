@@ -18,13 +18,14 @@ struct RateCalculationTests {
 
         // 10 per second for 10 seconds, in the past
         for i in 0..<10 {
-            stack.storage.record(MetricEntry(
-                timestamp: now.addingTimeInterval(Double(i) - 20),
-                label: "steady",
-                dimensions: [],
-                type: .counter,
-                value: Double(i * 10)
-            ))
+            stack.storage.record(
+                MetricEntry(
+                    timestamp: now.addingTimeInterval(Double(i) - 20),
+                    label: "steady",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(i * 10)
+                ))
         }
 
         let rate = stack.database.rate(label: "steady", over: 30)
@@ -43,12 +44,13 @@ struct RateCalculationTests {
     func singlePointReturnsNil() throws {
         let stack = try makeStack()
 
-        stack.storage.record(MetricEntry(
-            label: "single",
-            dimensions: [],
-            type: .counter,
-            value: 42
-        ))
+        stack.storage.record(
+            MetricEntry(
+                label: "single",
+                dimensions: [],
+                type: .counter,
+                value: 42
+            ))
 
         let rate = stack.database.rate(label: "single", over: 60)
         #expect(rate == nil)
@@ -61,17 +63,18 @@ struct RateCalculationTests {
 
         // Decreasing counter (e.g., remaining capacity), in the past
         for i in 0..<5 {
-            stack.storage.record(MetricEntry(
-                timestamp: now.addingTimeInterval(Double(i) * 2 - 20),
-                label: "decreasing",
-                dimensions: [],
-                type: .counter,
-                value: Double(100 - i * 20)
-            ))
+            stack.storage.record(
+                MetricEntry(
+                    timestamp: now.addingTimeInterval(Double(i) * 2 - 20),
+                    label: "decreasing",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(100 - i * 20)
+                ))
         }
 
         let rate = stack.database.rate(label: "decreasing", over: 30)
         #expect(rate != nil)
-        #expect(rate! < 0) // Negative rate
+        #expect(rate! < 0)  // Negative rate
     }
 }

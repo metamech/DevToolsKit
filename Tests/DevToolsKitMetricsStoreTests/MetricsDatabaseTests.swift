@@ -17,16 +17,18 @@ struct MetricsDatabaseTests {
         let stack = try makeStack()
 
         for i in 0..<5 {
-            stack.storage.record(MetricEntry(
-                label: "test", dimensions: [], type: .counter, value: Double(i + 1)
-            ))
+            stack.storage.record(
+                MetricEntry(
+                    label: "test", dimensions: [], type: .counter, value: Double(i + 1)
+                ))
         }
         stack.storage.flushNow()
 
-        let result = stack.database.execute(DatabaseQuery(
-            labelFilter: .exact("test"),
-            aggregation: .sum
-        ))
+        let result = stack.database.execute(
+            DatabaseQuery(
+                labelFilter: .exact("test"),
+                aggregation: .sum
+            ))
         #expect(result.rows.count == 1)
         #expect(result.rows[0].value == 15)
     }
@@ -53,9 +55,10 @@ struct MetricsDatabaseTests {
         let stack = try makeStack()
 
         for v in [10.0, 20.0, 30.0] {
-            stack.storage.record(MetricEntry(
-                label: "latency", dimensions: [], type: .timer, value: v
-            ))
+            stack.storage.record(
+                MetricEntry(
+                    label: "latency", dimensions: [], type: .timer, value: v
+                ))
         }
 
         let summary = stack.database.summary(for: "latency")
@@ -85,27 +88,29 @@ struct MetricsDatabaseTests {
 
         // Counter incrementing by 10 per second, in the past
         for i in 0..<10 {
-            stack.storage.record(MetricEntry(
-                timestamp: now.addingTimeInterval(Double(i) - 20),
-                label: "counter",
-                dimensions: [],
-                type: .counter,
-                value: Double(i * 10)
-            ))
+            stack.storage.record(
+                MetricEntry(
+                    timestamp: now.addingTimeInterval(Double(i) - 20),
+                    label: "counter",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(i * 10)
+                ))
         }
 
         let rate = stack.database.rate(label: "counter", over: 30)
         #expect(rate != nil)
-        #expect(abs(rate! - 10.0) < 0.001) // ~10 per second
+        #expect(abs(rate! - 10.0) < 0.001)  // ~10 per second
     }
 
     @Test
     func rateWithInsufficientData() throws {
         let stack = try makeStack()
 
-        stack.storage.record(MetricEntry(
-            label: "single", dimensions: [], type: .counter, value: 5
-        ))
+        stack.storage.record(
+            MetricEntry(
+                label: "single", dimensions: [], type: .counter, value: 5
+            ))
 
         let rate = stack.database.rate(label: "single", over: 60)
         #expect(rate == nil)
@@ -115,14 +120,16 @@ struct MetricsDatabaseTests {
     func streamEmitsInitialResult() async throws {
         let stack = try makeStack()
 
-        stack.storage.record(MetricEntry(
-            label: "streamed", dimensions: [], type: .counter, value: 42
-        ))
+        stack.storage.record(
+            MetricEntry(
+                label: "streamed", dimensions: [], type: .counter, value: 42
+            ))
         stack.storage.flushNow()
 
-        let stream = stack.database.stream(DatabaseQuery(
-            labelFilter: .exact("streamed")
-        ))
+        let stream = stack.database.stream(
+            DatabaseQuery(
+                labelFilter: .exact("streamed")
+            ))
 
         var receivedFirst = false
         for await result in stream {

@@ -39,7 +39,7 @@ public enum AggregationFunction: Sendable {
         case .count: return Double(values.count)
         case .latest:
             if timestamps.count == values.count,
-               let maxIndex = timestamps.indices.max(by: { timestamps[$0] < timestamps[$1] })
+                let maxIndex = timestamps.indices.max(by: { timestamps[$0] < timestamps[$1] })
             {
                 return values[maxIndex]
             } else {

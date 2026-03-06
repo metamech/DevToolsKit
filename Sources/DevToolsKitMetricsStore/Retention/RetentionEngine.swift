@@ -1,6 +1,6 @@
+import DevToolsKitMetrics
 import Foundation
 import SwiftData
-import DevToolsKitMetrics
 
 /// Manages automatic rollup creation and data retention for the metrics store.
 ///
@@ -54,8 +54,10 @@ public final class RetentionEngine: Sendable {
         let calendar = Calendar.current
 
         // 1. Create hourly rollups from raw observations in completed hours
-        let hourlyBoundary = calendar.date(bySettingHour: calendar.component(.hour, from: now),
-                                           minute: 0, second: 0, of: now) ?? now
+        let hourlyBoundary =
+            calendar.date(
+                bySettingHour: calendar.component(.hour, from: now),
+                minute: 0, second: 0, of: now) ?? now
         createRollups(
             context: context,
             granularity: "hourly",
@@ -117,14 +119,15 @@ public final class RetentionEngine: Sendable {
         var groups: [String: [MetricObservation]] = [:]
         for obs in observations {
             let bucketStart = Date(
-                timeIntervalSinceReferenceDate:
-                    (obs.timestamp.timeIntervalSinceReferenceDate / interval).rounded(.down) * interval
+                timeIntervalSinceReferenceDate: (obs.timestamp.timeIntervalSinceReferenceDate / interval).rounded(.down)
+                    * interval
             )
             let bucketEnd = bucketStart.addingTimeInterval(interval)
             // Only rollup completed buckets
             guard bucketEnd <= boundary else { continue }
 
-            let key = "\(obs.label)|\(obs.typeRawValue)|\(obs.dimensionsKey)|\(bucketStart.timeIntervalSinceReferenceDate)"
+            let key =
+                "\(obs.label)|\(obs.typeRawValue)|\(obs.dimensionsKey)|\(bucketStart.timeIntervalSinceReferenceDate)"
             groups[key, default: []].append(obs)
         }
 
@@ -195,7 +198,8 @@ public final class RetentionEngine: Sendable {
         for rollup in hourlyRollups {
             let dayStart = calendar.startOfDay(for: rollup.bucketStart)
             guard dayStart.addingTimeInterval(86_400) <= boundary else { continue }
-            let key = "\(rollup.label)|\(rollup.typeRawValue)|\(rollup.dimensionsKey)|\(dayStart.timeIntervalSinceReferenceDate)"
+            let key =
+                "\(rollup.label)|\(rollup.typeRawValue)|\(rollup.dimensionsKey)|\(dayStart.timeIntervalSinceReferenceDate)"
             groups[key, default: []].append(rollup)
         }
 

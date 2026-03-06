@@ -1,6 +1,6 @@
+import DevToolsKitMetrics
 import Foundation
 import SwiftData
-import DevToolsKitMetrics
 
 /// Notification posted after each batch flush to the persistent store.
 ///
@@ -136,10 +136,12 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     }
 
     public func summary(for identifier: MetricIdentifier) -> MetricSummary? {
-        let matching = query(MetricsQuery(
-            label: identifier.label,
-            type: identifier.type
-        )).filter { MetricIdentifier(entry: $0) == identifier }
+        let matching = query(
+            MetricsQuery(
+                label: identifier.label,
+                type: identifier.type
+            )
+        ).filter { MetricIdentifier(entry: $0) == identifier }
 
         return MetricsAggregation.summarize(matching, identifier: identifier)
     }
@@ -153,11 +155,12 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         var identifiers = knownIdentifiers
         for def in definitions {
             if let type = MetricType(rawValue: def.typeRawValue) {
-                identifiers.insert(MetricIdentifier(
-                    label: def.label,
-                    dimensions: [],
-                    type: type
-                ))
+                identifiers.insert(
+                    MetricIdentifier(
+                        label: def.label,
+                        dimensions: [],
+                        type: type
+                    ))
             }
         }
         return Array(identifiers)
@@ -200,9 +203,10 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         if let defs = try? context.fetch(descriptor) {
             for def in defs {
                 if let type = MetricType(rawValue: def.typeRawValue) {
-                    knownIdentifiers.insert(MetricIdentifier(
-                        label: def.label, dimensions: [], type: type
-                    ))
+                    knownIdentifiers.insert(
+                        MetricIdentifier(
+                            label: def.label, dimensions: [], type: type
+                        ))
                 }
             }
         }
@@ -249,13 +253,14 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
                 )
                 let allKeys = existingKeys.union(dimKeys)
                 if let json = try? JSONEncoder().encode(Array(allKeys).sorted()),
-                   let str = String(data: json, encoding: .utf8)
+                    let str = String(data: json, encoding: .utf8)
                 {
                     existing.knownDimensionKeysJSON = str
                 }
             } else {
                 let dimKeys = entry.dimensions.map(\.0)
-                let json = (try? JSONEncoder().encode(dimKeys))
+                let json =
+                    (try? JSONEncoder().encode(dimKeys))
                     .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
                 let def = MetricDefinition(
                     label: entry.label,

@@ -1,5 +1,5 @@
-import Foundation
 import DevToolsKitMetrics
+import Foundation
 
 /// An enhanced query for the persistent metrics database.
 ///

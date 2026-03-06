@@ -8,7 +8,9 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct RetentionEngineTests {
-    private func makeSetup(policy: RetentionPolicy = .default) throws -> (
+    private func makeSetup(
+        policy: RetentionPolicy = .default
+    ) throws -> (
         ModelContainer, PersistentMetricsStorage, RetentionEngine
     ) {
         let schema = Schema(MetricsModelTypes.all)
@@ -28,13 +30,14 @@ struct RetentionEngineTests {
 
         // Record entries in a completed hour
         for i in 0..<60 {
-            storage.record(MetricEntry(
-                timestamp: twoHoursAgo.addingTimeInterval(Double(i) * 60),
-                label: "rollup.test",
-                dimensions: [],
-                type: .counter,
-                value: Double(i)
-            ))
+            storage.record(
+                MetricEntry(
+                    timestamp: twoHoursAgo.addingTimeInterval(Double(i) * 60),
+                    label: "rollup.test",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(i)
+                ))
         }
         storage.flushNow()
 
@@ -65,13 +68,14 @@ struct RetentionEngineTests {
         )!
 
         for i in 1...10 {
-            storage.record(MetricEntry(
-                timestamp: hourStart.addingTimeInterval(Double(i) * 60),
-                label: "accuracy",
-                dimensions: [],
-                type: .counter,
-                value: Double(i)
-            ))
+            storage.record(
+                MetricEntry(
+                    timestamp: hourStart.addingTimeInterval(Double(i) * 60),
+                    label: "accuracy",
+                    dimensions: [],
+                    type: .counter,
+                    value: Double(i)
+                ))
         }
         storage.flushNow()
 
@@ -88,7 +92,7 @@ struct RetentionEngineTests {
 
         if let rollup = rollups.first {
             #expect(rollup.count == 10)
-            #expect(rollup.sum == 55) // 1+2+...+10
+            #expect(rollup.sum == 55)  // 1+2+...+10
             #expect(rollup.min == 1)
             #expect(rollup.max == 10)
             #expect(rollup.avg == 5.5)
@@ -98,28 +102,30 @@ struct RetentionEngineTests {
     @Test
     func ttlPurging() throws {
         let policy = RetentionPolicy(
-            rawDataTTL: 3600,      // 1 hour
-            hourlyRollupTTL: 7200, // 2 hours
+            rawDataTTL: 3600,  // 1 hour
+            hourlyRollupTTL: 7200,  // 2 hours
             dailyRollupTTL: 86400
         )
         let (container, storage, engine) = try makeSetup(policy: policy)
 
         // Record old entry (2 hours ago — should be purged with 1h TTL)
-        storage.record(MetricEntry(
-            timestamp: Date().addingTimeInterval(-7200),
-            label: "old",
-            dimensions: [],
-            type: .counter,
-            value: 1
-        ))
+        storage.record(
+            MetricEntry(
+                timestamp: Date().addingTimeInterval(-7200),
+                label: "old",
+                dimensions: [],
+                type: .counter,
+                value: 1
+            ))
         // Record recent entry (5 min ago — should survive)
-        storage.record(MetricEntry(
-            timestamp: Date().addingTimeInterval(-300),
-            label: "recent",
-            dimensions: [],
-            type: .counter,
-            value: 2
-        ))
+        storage.record(
+            MetricEntry(
+                timestamp: Date().addingTimeInterval(-300),
+                label: "recent",
+                dimensions: [],
+                type: .counter,
+                value: 2
+            ))
         storage.flushNow()
 
         engine.runMaintenanceCycle()

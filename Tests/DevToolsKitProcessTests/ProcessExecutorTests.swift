@@ -1,3 +1,4 @@
+#if os(macOS)
 import Testing
 import Foundation
 @testable import DevToolsKitProcess
@@ -342,3 +343,4 @@ struct ProcessExecutionErrorTests {
         #expect(error.localizedDescription.contains("file not found"))
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// The result of an external process execution.
@@ -54,3 +55,4 @@ public struct ProcessResult: Sendable, Identifiable {
         self.startedAt = startedAt
     }
 }
+#endif

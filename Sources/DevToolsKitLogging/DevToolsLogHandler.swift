@@ -1,6 +1,7 @@
 import DevToolsKit
 import Foundation
 import Logging
+import os
 
 /// A swift-log `LogHandler` that feeds log entries into a `DevToolsLogStore`.
 ///
@@ -14,19 +15,32 @@ import Logging
 /// ```
 ///
 /// Or use it alongside other handlers with `MultiplexLogHandler`.
+///
+/// By default, all log messages are also forwarded to `os.Logger` so they
+/// appear in Console.app. Pass `osLogForwarding: false` to disable.
 public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
     public var logLevel: Logging.Logger.Level = .trace
     public var metadata: Logging.Logger.Metadata = [:]
 
     private let label: String
     private let store: DevToolsLogStore
+    private let osLogger: os.Logger?
 
     /// - Parameters:
     ///   - label: The logger label (used as the entry's `source`).
     ///   - store: The shared log store to append entries to.
-    public init(label: String, store: DevToolsLogStore) {
+    ///   - osLogForwarding: Whether to forward log messages to `os.Logger` (default: `true`).
+    ///
+    /// Since 0.4.0 — `osLogForwarding` parameter added.
+    public init(label: String, store: DevToolsLogStore, osLogForwarding: Bool = true) {
         self.label = label
         self.store = store
+        self.osLogger = osLogForwarding
+            ? os.Logger(
+                subsystem: Bundle.main.bundleIdentifier ?? "DevToolsKit",
+                category: label
+            )
+            : nil
     }
 
     public subscript(metadataKey key: String) -> Logging.Logger.Metadata.Value? {
@@ -60,6 +74,11 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
         Task { @MainActor in
             store.append(entry)
         }
+
+        if let osLogger {
+            let messageString = message.description
+            osLogger.log(level: mapOSLogType(level), "\(messageString, privacy: .public)")
+        }
     }
 
     private func mapLevel(_ level: Logging.Logger.Level) -> DevToolsLogLevel {
@@ -72,6 +91,19 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
             return .info
         case .warning:
             return .warning
+        case .error, .critical:
+            return .error
+        }
+    }
+
+    private func mapOSLogType(_ level: Logging.Logger.Level) -> OSLogType {
+        switch level {
+        case .trace, .debug:
+            return .debug
+        case .info, .notice:
+            return .info
+        case .warning:
+            return .default
         case .error, .critical:
             return .error
         }

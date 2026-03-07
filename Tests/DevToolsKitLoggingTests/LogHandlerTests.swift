@@ -81,4 +81,68 @@ struct LogHandlerTests {
         #expect(store.entries.first?.metadata?.contains("request-id") == true)
         #expect(store.entries.first?.metadata?.contains("abc123") == true)
     }
+
+    @Test func osLogForwardingEnabledByDefault() async throws {
+        let store = DevToolsLogStore()
+        var handler = DevToolsLogHandler(label: "test.oslog", store: store)
+        handler.logLevel = .trace
+
+        handler.log(
+            level: .info,
+            message: "With os.Logger forwarding",
+            metadata: nil,
+            source: "test",
+            file: #file,
+            function: #function,
+            line: #line
+        )
+
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(store.entries.count == 1)
+        #expect(store.entries.first?.message == "With os.Logger forwarding")
+    }
+
+    @Test func osLogForwardingDisabledStillAppendsToStore() async throws {
+        let store = DevToolsLogStore()
+        var handler = DevToolsLogHandler(label: "test.nolog", store: store, osLogForwarding: false)
+        handler.logLevel = .trace
+
+        handler.log(
+            level: .warning,
+            message: "No os.Logger",
+            metadata: nil,
+            source: "test",
+            file: #file,
+            function: #function,
+            line: #line
+        )
+
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(store.entries.count == 1)
+        #expect(store.entries.first?.message == "No os.Logger")
+        #expect(store.entries.first?.level == .warning)
+    }
+
+    @Test func osLogForwardingExplicitlyEnabled() async throws {
+        let store = DevToolsLogStore()
+        var handler = DevToolsLogHandler(label: "test.explicit", store: store, osLogForwarding: true)
+        handler.logLevel = .trace
+
+        handler.log(
+            level: .debug,
+            message: "Explicit forwarding",
+            metadata: nil,
+            source: "test",
+            file: #file,
+            function: #function,
+            line: #line
+        )
+
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(store.entries.count == 1)
+        #expect(store.entries.first?.message == "Explicit forwarding")
+    }
 }

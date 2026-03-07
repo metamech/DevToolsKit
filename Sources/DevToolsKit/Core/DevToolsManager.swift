@@ -205,8 +205,11 @@ public final class DevToolsManager: Sendable {
 
     /// Open a panel according to the current global display mode.
     ///
+    /// On non-macOS platforms, windowed and separateWindows modes fall back to docked mode.
+    ///
     /// - Parameter panelID: The panel's stable identifier.
     public func openPanel(_ panelID: String) {
+        #if os(macOS)
         switch displayMode {
         case .docked:
             activeDockPanelID = panelID
@@ -221,6 +224,10 @@ public final class DevToolsManager: Sendable {
             }
             openStandalonePanelIDs.insert(panelID)
         }
+        #else
+        activeDockPanelID = panelID
+        isDockVisible = true
+        #endif
     }
 
     /// Close a panel across all display modes.
@@ -240,24 +247,31 @@ public final class DevToolsManager: Sendable {
     /// Open a panel in its own standalone window without changing the global display mode.
     ///
     /// Use this to "pop out" a panel from the dock or tabbed window into a floating window.
+    /// No-op on non-macOS platforms.
     ///
     /// - Parameter panelID: The panel's stable identifier.
     ///
     /// Since 0.4.0
     public func popOutPanel(_ panelID: String) {
+        #if os(macOS)
         guard let panel = panel(for: panelID) else { return }
         openStandalonePanelIDs.insert(panelID)
         windowManager.open(panel: panel)
+        #endif
     }
 
     /// Close a popped-out standalone window.
+    ///
+    /// No-op on non-macOS platforms.
     ///
     /// - Parameter panelID: The panel's stable identifier.
     ///
     /// Since 0.4.0
     public func closePopOut(_ panelID: String) {
+        #if os(macOS)
         openStandalonePanelIDs.remove(panelID)
         windowManager.close(panelID: panelID)
+        #endif
     }
 
     // MARK: - Private

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import os
 
@@ -215,3 +216,4 @@ public struct ProcessExecutor: Sendable {
         return output
     }
 }
+#endif

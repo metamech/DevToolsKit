@@ -34,7 +34,9 @@ struct MetricsQueryView: View {
             .frame(width: 160)
 
             Toggle("Date range", isOn: $useDateFilter)
+                #if os(macOS)
                 .toggleStyle(.checkbox)
+                #endif
 
             if useDateFilter {
                 DatePicker("", selection: $queryStartDate)

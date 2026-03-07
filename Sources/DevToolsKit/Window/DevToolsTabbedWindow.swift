@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import SwiftUI
 
@@ -48,6 +49,24 @@ public final class DevToolsTabbedWindow {
         window?.isVisible ?? false
     }
 }
+#else
+import SwiftUI
+
+/// Stub tabbed window for non-macOS platforms where NSWindow is unavailable.
+@MainActor
+public final class DevToolsTabbedWindow {
+    public init() {}
+
+    /// No-op on non-macOS platforms.
+    public func open(manager: DevToolsManager) {}
+
+    /// No-op on non-macOS platforms.
+    public func close() {}
+
+    /// Always returns `false` on non-macOS platforms.
+    public var isOpen: Bool { false }
+}
+#endif
 
 // MARK: - Tabbed Content View
 
@@ -96,6 +115,7 @@ struct DevToolsTabbedContentView: View {
             )
         }
         .buttonStyle(.plain)
+        #if os(macOS)
         .contextMenu {
             Button("Pop Out to Window") {
                 manager.popOutPanel(panel.id)
@@ -105,6 +125,7 @@ struct DevToolsTabbedContentView: View {
                 manager.closePanel(panel.id)
             }
         }
+        #endif
     }
 
     @ViewBuilder

@@ -2,8 +2,10 @@
 
 ## Project
 
-Swift package: in-app developer tools for macOS SwiftUI apps.
-Platform: macOS 15+, Swift 6, strict concurrency.
+Swift package: in-app developer tools for Apple platform SwiftUI apps.
+Platform: all Apple platforms (macOS/iOS/tvOS/watchOS/visionOS 26+), Swift 6, strict concurrency.
+Note: DevToolsKitProcess is macOS-only. BookmarkManager (in DevToolsKitSecurity) is macOS-only.
+Windowed/separateWindows display modes are macOS-only; other platforms use docked mode.
 
 Multi-product package:
 - **DevToolsKit** — core (no external deps): panels, manager, export, window/menu

@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import SwiftUI
 
@@ -71,3 +72,24 @@ public final class DevToolsWindowManager {
         return window
     }
 }
+#else
+import SwiftUI
+
+/// Stub window manager for non-macOS platforms where standalone windows are unavailable.
+@MainActor
+public final class DevToolsWindowManager {
+    public init() {}
+
+    /// No-op on non-macOS platforms.
+    public func open(panel: any DevToolPanel) {}
+
+    /// No-op on non-macOS platforms.
+    public func close(panelID: String) {}
+
+    /// Always returns `false` on non-macOS platforms.
+    public func isOpen(panelID: String) -> Bool { false }
+
+    /// No-op on non-macOS platforms.
+    public func closeAll() {}
+}
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// Manages security-scoped bookmarks for persistent file access in sandboxed apps.
@@ -79,3 +80,4 @@ public struct BookmarkManager: Sendable {
         }
     }
 }
+#endif

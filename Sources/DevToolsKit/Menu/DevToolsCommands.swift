@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 /// SwiftUI Commands that add a "Developer" menu with all registered panels.
@@ -92,3 +93,4 @@ public struct DevToolsCommands: Commands {
         manager.openPanel(panel.id)
     }
 }
+#endif

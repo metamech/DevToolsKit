@@ -1,4 +1,6 @@
+#if canImport(AppKit)
 import AppKit
+#endif
 import Foundation
 
 /// Collects diagnostic data from all registered providers and exports as JSON.
@@ -25,6 +27,7 @@ public struct DiagnosticExporter {
             ?? "app"
     }
 
+    #if canImport(AppKit)
     /// Export diagnostics: collect all data, present save panel, write JSON.
     public func export() async {
         let report = await collectReport()
@@ -59,6 +62,22 @@ public struct DiagnosticExporter {
         } catch {
             showError("Failed to save diagnostic report: \(error.localizedDescription)")
         }
+    }
+    #endif
+
+    /// Export diagnostics as JSON data without presenting a save panel.
+    ///
+    /// Available on all platforms. Returns `nil` if serialization fails.
+    ///
+    /// Since 0.4.0
+    public func exportData() async -> Data? {
+        let report = await collectReport()
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+        return try? encoder.encode(report)
     }
 
     private func collectReport() async -> DiagnosticReport {
@@ -118,6 +137,7 @@ public struct DiagnosticExporter {
         logProvider?.diagnosticLogEntries(limit: 100) ?? []
     }
 
+    #if canImport(AppKit)
     private func showError(_ message: String) {
         let alert = NSAlert()
         alert.messageText = "Error"
@@ -126,6 +146,11 @@ public struct DiagnosticExporter {
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
+    #else
+    private func showError(_ message: String) {
+        print("[DiagnosticExporter] Error: \(message)")
+    }
+    #endif
 }
 
 /// Wrapper to type-erase Codable for encoding.

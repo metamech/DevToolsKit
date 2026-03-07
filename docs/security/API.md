@@ -130,9 +130,12 @@ public enum SandboxError: Error, LocalizedError, Sendable {
 }
 ```
 
-## Bookmarks
+## Bookmarks (macOS only)
 
 ### BookmarkManager
+
+> **Platform:** macOS only. Compiled out on non-macOS platforms via `#if os(macOS)`.
+
 ```swift
 public struct BookmarkManager: Sendable {
     public func createBookmark(for url: URL) throws -> Data

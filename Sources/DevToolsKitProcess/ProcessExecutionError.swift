@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// Errors that can occur during process execution.
@@ -19,3 +20,4 @@ public enum ProcessExecutionError: Error, LocalizedError, Sendable {
         }
     }
 }
+#endif

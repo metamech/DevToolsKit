@@ -87,3 +87,18 @@ Pre-0.4.0 versions used per-panel display modes (`.standalone`, `.tabbed`, `.doc
 - Scans `{prefix}.panelMode.*` UserDefaults keys
 - Maps the dominant per-panel mode to the new global mode (tabbed → windowed, docked → docked, standalone → separateWindows)
 - Cleans up legacy keys
+
+## Platform Behavior
+
+Since 0.4.0, DevToolsKit supports all Apple platforms (macOS, iOS, tvOS, watchOS, visionOS 26+).
+
+| Feature | macOS | iOS / tvOS / visionOS | watchOS |
+|---------|-------|----------------------|---------|
+| Docked mode | VSplitView / HSplitView | NavigationSplitView | No UI panels |
+| Windowed mode | NSWindow (tabbed) | Falls back to docked | N/A |
+| Separate windows | NSWindow per panel | Falls back to docked | N/A |
+| Pop out | Standalone NSWindow | No-op | N/A |
+| Developer menu | CommandMenu | Not available | N/A |
+| Diagnostic export (NSSavePanel) | Yes | Use `exportData()` | Use `exportData()` |
+
+On non-macOS platforms, `openPanel()` always activates docked mode regardless of the `displayMode` setting. `popOutPanel()` and `closePopOut()` are no-ops.

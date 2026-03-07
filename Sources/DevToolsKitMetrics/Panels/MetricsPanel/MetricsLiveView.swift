@@ -6,24 +6,36 @@ struct MetricsLiveView: View {
     @State private var selectedIdentifier: MetricIdentifier?
 
     var body: some View {
+        #if os(macOS)
         HSplitView {
             metricsList
                 .frame(minWidth: 250)
 
-            if let selectedIdentifier {
-                MetricDetailView(
-                    identifier: selectedIdentifier,
-                    metricsManager: metricsManager
-                )
+            detailPane
                 .frame(minWidth: 300)
-            } else {
-                ContentUnavailableView(
-                    "Select a Metric",
-                    systemImage: "chart.bar",
-                    description: Text("Choose a metric from the list to view details.")
-                )
-                .frame(minWidth: 300)
-            }
+        }
+        #else
+        NavigationSplitView {
+            metricsList
+        } detail: {
+            detailPane
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var detailPane: some View {
+        if let selectedIdentifier {
+            MetricDetailView(
+                identifier: selectedIdentifier,
+                metricsManager: metricsManager
+            )
+        } else {
+            ContentUnavailableView(
+                "Select a Metric",
+                systemImage: "chart.bar",
+                description: Text("Choose a metric from the list to view details.")
+            )
         }
     }
 
@@ -97,7 +109,7 @@ struct MetricsLiveView: View {
     private func formatValue(_ value: Double, type: MetricType) -> String {
         switch type {
         case .timer:
-            // Nanoseconds → milliseconds
+            // Nanoseconds -> milliseconds
             let ms = value / 1_000_000
             return String(format: "%.2f ms", ms)
         default:

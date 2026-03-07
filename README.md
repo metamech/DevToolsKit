@@ -1,13 +1,13 @@
 # DevToolsKit
 
-**In-app developer tools for macOS SwiftUI apps.**
+**In-app developer tools for Apple platform SwiftUI apps.**
 
 [![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)](https://swift.org)
-[![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue.svg)](https://developer.apple.com/macos/)
+[![All Apple Platforms 26+](https://img.shields.io/badge/Platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS%2026%2B-blue.svg)](https://developer.apple.com)
 [![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
 [![MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Import only what you need — a core panel system with built-in panels, plus opt-in modules for logging, metrics, and feature flags.
+DevToolsKit is a modular developer tools framework for Apple platform SwiftUI apps. Import only what you need — a core panel system with built-in panels, plus opt-in modules for logging, metrics, and feature flags. Supports macOS, iOS, tvOS, visionOS, and watchOS (26+).
 
 ## Modules
 
@@ -17,7 +17,7 @@ DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Impor
 | **DevToolsKitLogging** | swift-log integration with filterable log viewer panel | [swift-log](https://github.com/apple/swift-log) |
 | **DevToolsKitMetrics** | swift-metrics integration with storage, query, and metrics inspector panel | [swift-metrics](https://github.com/apple/swift-metrics) |
 | **DevToolsKitLicensing** | Feature flags, cohort experiments, percentage rollouts, license-tier gating | [swift-metrics](https://github.com/apple/swift-metrics) |
-| **DevToolsKitProcess** | Process execution with timeout, stdout/stderr capture | None |
+| **DevToolsKitProcess** | Process execution with timeout, stdout/stderr capture (macOS only) | None |
 | **DevToolsKitSecurity** | Permissions, sandbox validation, bookmarks, command policy | None |
 | **DevToolsKitGitHub** | GitHub REST API client with caching, retry, rate limiting | None |
 | **DevToolsKitDiff** | Unified diff parsing, application, and validation | None |
@@ -38,6 +38,7 @@ DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Impor
 **Logging** (opt-in)
 - Filterable, searchable log viewer with FIFO capacity (⌘⌥L)
 - swift-log `LogHandler` — all `Logger` output captured automatically
+- Dual logging: os.Logger forwarding sends all swift-log output to Console.app (enabled by default)
 
 **Metrics** (opt-in)
 - Metrics inspector with live view, query builder, and report tabs (⌘⌥I)
@@ -107,9 +108,9 @@ import DevToolsKitLicensing // opt-in
 
 ## Requirements
 
-- macOS 15.0+
+- macOS, iOS, tvOS, watchOS, visionOS 26+
 - Swift 6
-- Xcode 16+
+- Xcode 26+
 
 ## Installation
 

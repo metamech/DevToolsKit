@@ -48,13 +48,17 @@ public struct DevToolsLogEntry: Identifiable, Sendable {
 
 ```swift
 public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
-    public init(label: String, store: DevToolsLogStore)
+    public init(label: String, store: DevToolsLogStore, osLogForwarding: Bool = true)  // since 0.4.0
     public var logLevel: Logging.Logger.Level
     public var metadata: Logging.Logger.Metadata
 }
 ```
 
 Dispatches to `DevToolsLogStore` via `Task { @MainActor in store.append(entry) }`.
+
+### os.Logger Forwarding (since 0.4.0)
+
+When `osLogForwarding` is `true` (the default), all log messages are also forwarded to `os.Logger` so they appear in Console.app. The subsystem is `Bundle.main.bundleIdentifier` and the category is the swift-log label. Messages use `.public` privacy.
 
 ## LogPanel
 

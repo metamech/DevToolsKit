@@ -18,6 +18,7 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 | **[DevToolsKitDiff](diff/GUIDE.md)** | Unified diff parsing, application, and validation | None |
 | **[DevToolsKitCodeAnalysis](codeanalysis/GUIDE.md)** | Language-agnostic code analysis: security, performance, complexity, metrics, reports | DevToolsKit |
 | **[DevToolsKitCodeAnalysisSwift](codeanalysis-swift/GUIDE.md)** | Swift-specific analysis rules | DevToolsKitCodeAnalysis |
+| **[DevToolsKitMetricsStore](metrics-store/GUIDE.md)** | Persistent SwiftData metrics storage, enhanced queries, rollups, retention | DevToolsKitMetrics |
 
 ## Quick Links
 
@@ -68,6 +69,10 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 ### Swift Code Analysis (opt-in)
 - [Swift Analysis Guide](codeanalysis-swift/GUIDE.md) — Swift-specific rules
 - [Swift Analysis API Reference](codeanalysis-swift/API.md)
+
+### Metrics Store (opt-in)
+- [Metrics Store Guide](metrics-store/GUIDE.md) — Persistent storage, enhanced queries, rollups, retention
+- [Metrics Store API Reference](metrics-store/API.md)
 
 ### Cross-Module
 - [Testing Patterns](TESTING.md)

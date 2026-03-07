@@ -9,6 +9,10 @@ DerivedData/
 .prclean-summary.txt
 claude-progress.md
 
+# Profiling
+*.profraw
+*.profdata
+
 # IDEs
 .vscode/
 .idea/

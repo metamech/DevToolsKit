@@ -23,6 +23,7 @@ DevToolsKit is a modular developer tools framework for macOS SwiftUI apps. Impor
 | **DevToolsKitDiff** | Unified diff parsing, application, and validation | None |
 | **DevToolsKitCodeAnalysis** | Language-agnostic code analysis: security, performance, complexity, metrics, reports | None |
 | **DevToolsKitCodeAnalysisSwift** | Swift-specific analysis rules (force unwraps, retain cycles, etc.) | DevToolsKitCodeAnalysis |
+| **DevToolsKitMetricsStore** | Persistent SwiftData metrics storage, enhanced queries, rollups, retention | DevToolsKitMetrics |
 
 ## Features
 

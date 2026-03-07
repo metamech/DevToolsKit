@@ -1,4 +1,6 @@
+#if canImport(AppKit)
 import AppKit
+#endif
 import DevToolsKit
 import SwiftUI
 
@@ -137,7 +139,9 @@ public struct LogPanelView: View {
                 .foregroundStyle(.secondary)
 
             Toggle("Auto-scroll", isOn: $autoScroll)
+                #if os(macOS)
                 .toggleStyle(.checkbox)
+                #endif
                 .font(.caption)
 
             Button(action: { logStore.clear() }) {
@@ -177,6 +181,7 @@ private struct ColumnDivider: View {
                         isDragging = false
                     }
             )
+            #if canImport(AppKit)
             .onHover { hovering in
                 if hovering {
                     NSCursor.resizeLeftRight.push()
@@ -184,6 +189,7 @@ private struct ColumnDivider: View {
                     NSCursor.pop()
                 }
             }
+            #endif
             .padding(.horizontal, 2)
     }
 }
@@ -272,6 +278,7 @@ struct LogEntryRow: View {
 ///   - width: The available width in points.
 /// - Returns: The truncated source (e.g., `"maccad.canvas.view"`).
 func truncateReverseDNS(_ source: String, fitting width: CGFloat) -> String {
+    #if canImport(AppKit)
     let font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
     let attributes: [NSAttributedString.Key: Any] = [.font: font]
 
@@ -296,4 +303,27 @@ func truncateReverseDNS(_ source: String, fitting width: CGFloat) -> String {
 
     // Return last 2 components as minimum
     return components.suffix(2).joined(separator: ".")
+    #else
+    // Character-count heuristic: ~7pt per character at caption2 monospaced size
+    let estimatedCharWidth: CGFloat = 7.0
+    let maxChars = Int(width / estimatedCharWidth)
+
+    if source.count <= maxChars {
+        return source
+    }
+
+    let components = source.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+    guard components.count > 2 else {
+        return source
+    }
+
+    for dropCount in 1...(components.count - 2) {
+        let truncated = components.dropFirst(dropCount).joined(separator: ".")
+        if truncated.count <= maxChars {
+            return truncated
+        }
+    }
+
+    return components.suffix(2).joined(separator: ".")
+    #endif
 }

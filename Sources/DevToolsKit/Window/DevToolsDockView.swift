@@ -32,6 +32,7 @@ struct DevToolsDockView: View {
             .pickerStyle(.segmented)
             .frame(width: 100)
 
+            #if os(macOS)
             Button {
                 if let panelID = manager.activeDockPanelID {
                     manager.popOutPanel(panelID)
@@ -42,6 +43,7 @@ struct DevToolsDockView: View {
             }
             .help("Pop out to window")
             .disabled(manager.activeDockPanelID == nil)
+            #endif
 
             Button {
                 manager.isDockVisible = false
@@ -79,11 +81,13 @@ struct DevToolsDockView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    #if os(macOS)
                     .contextMenu {
                         Button("Pop Out to Window") {
                             manager.popOutPanel(panel.id)
                         }
                     }
+                    #endif
                 }
             }
             .padding(.horizontal, 8)

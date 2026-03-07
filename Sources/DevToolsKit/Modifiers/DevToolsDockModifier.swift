@@ -18,6 +18,7 @@ struct DevToolsDockModifier: ViewModifier {
 
     @ViewBuilder
     private func splitView(content: Content) -> some View {
+        #if os(macOS)
         switch manager.dockPosition {
         case .bottom:
             VSplitView {
@@ -38,7 +39,38 @@ struct DevToolsDockModifier: ViewModifier {
                 content
             }
         }
+        #else
+        NavigationSplitView {
+            panelSidebar
+        } detail: {
+            dockDetail(mainContent: content)
+        }
+        #endif
     }
+
+    #if !os(macOS)
+    private var panelSidebar: some View {
+        List(manager.panels, id: \.id, selection: Binding(
+            get: { manager.activeDockPanelID },
+            set: { manager.activeDockPanelID = $0 }
+        )) { panel in
+            Label(panel.title, systemImage: panel.icon)
+                .tag(panel.id)
+        }
+        .navigationTitle("Developer Tools")
+    }
+
+    @ViewBuilder
+    private func dockDetail(mainContent: Content) -> some View {
+        if let activeID = manager.activeDockPanelID,
+            let panel = manager.panel(for: activeID)
+        {
+            panel.makeBody()
+        } else {
+            mainContent
+        }
+    }
+    #endif
 }
 
 extension View {

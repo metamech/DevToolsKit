@@ -1,6 +1,6 @@
 # DevToolsKit Documentation
 
-In-app developer tools for macOS SwiftUI apps.
+In-app developer tools for Apple platform SwiftUI apps (macOS, iOS, tvOS, watchOS, visionOS 26+).
 
 ## Modules
 
@@ -12,7 +12,7 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 | **[DevToolsKitLogging](logging/GUIDE.md)** | swift-log integration with filterable log viewer panel | DevToolsKit, [swift-log](https://github.com/apple/swift-log) |
 | **[DevToolsKitMetrics](metrics/GUIDE.md)** | swift-metrics integration with storage, query, and metrics inspector panel | DevToolsKit, [swift-metrics](https://github.com/apple/swift-metrics) |
 | **[DevToolsKitLicensing](licensing/FEATURE_FLAGS.md)** | Feature flags, experimentation (cohorts/rollouts), license gating | DevToolsKit, [swift-metrics](https://github.com/apple/swift-metrics) |
-| **[DevToolsKitProcess](process/GUIDE.md)** | Process execution with timeout, stdout/stderr capture | None |
+| **[DevToolsKitProcess](process/GUIDE.md)** | Process execution with timeout, stdout/stderr capture (macOS only) | None |
 | **[DevToolsKitSecurity](security/GUIDE.md)** | Permissions, sandbox validation, bookmarks, command policy | DevToolsKit |
 | **[DevToolsKitGitHub](github/GUIDE.md)** | GitHub REST API client with caching, retry, rate limiting | DevToolsKit |
 | **[DevToolsKitDiff](diff/GUIDE.md)** | Unified diff parsing, application, and validation | None |
@@ -83,6 +83,7 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 
 | Version | Highlights |
 |---------|------------|
+| 0.4.0 | Multi-platform support (all Apple platforms 26+), os.Logger dual logging |
 | 0.3.0 | DevToolsKitMetrics module (swift-metrics integration, metrics inspector panel) |
 | 0.2.0 | DevToolsKitLicensing module (feature flags, experimentation, license gating) |
 | 0.1.0 | Initial release — core panel system, logging, environment, data inspector, export |

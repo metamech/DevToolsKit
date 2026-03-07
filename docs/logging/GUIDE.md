@@ -104,3 +104,36 @@ The message column fills remaining space.
 ### Source Truncation
 
 Reverse-DNS source labels (e.g., `com.metamech.maccad.canvas.view`) are automatically truncated to fit the source column width. Leading dot-separated components are stripped first, always preserving at least the last two components. Hover over a truncated source to see the full label in a tooltip.
+
+## Dual Logging: os.Logger Forwarding (since 0.4.0)
+
+By default, `DevToolsLogHandler` forwards all log messages to `os.Logger` in addition to the in-memory `DevToolsLogStore`. This means all swift-log output automatically appears in Console.app and `log stream`.
+
+### How it works
+
+- **Subsystem**: `Bundle.main.bundleIdentifier` (falls back to `"DevToolsKit"`)
+- **Category**: The swift-log label (e.g., `"myapp.network"`)
+- **Privacy**: `.public` — appropriate for developer-facing log messages
+- **Level mapping**: trace/debug -> `.debug`, info/notice -> `.info`, warning -> `.default`, error/critical -> `.error`
+
+### Disabling os.Logger forwarding
+
+Pass `osLogForwarding: false` to keep logs only in `DevToolsLogStore`:
+
+```swift
+LoggingSystem.bootstrap { label in
+    DevToolsLogHandler(label: label, store: logStore, osLogForwarding: false)
+}
+```
+
+### Viewing in Console.app
+
+1. Open Console.app
+2. Filter by your app's bundle identifier (subsystem)
+3. Enable "Include Info Messages" and "Include Debug Messages" as needed
+
+Or from the terminal:
+
+```bash
+log stream --predicate 'subsystem == "com.yourapp.bundleid"' --level debug
+```

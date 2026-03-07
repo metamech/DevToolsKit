@@ -98,7 +98,8 @@ public protocol DiagnosticProvider {
 @MainActor
 public struct DiagnosticExporter {
     public init(manager: DevToolsManager, logStore: (any DiagnosticLogProvider)? = nil, appName: String? = nil)
-    public func export() async
+    public func export() async          // macOS only — presents NSSavePanel
+    public func exportData() async -> Data?  // all platforms (since 0.4.0)
 }
 ```
 
@@ -139,10 +140,17 @@ public enum MetricColor: String, Sendable { case blue, purple, orange, red, gree
 ## Window & Menu Types
 
 ```swift
-@MainActor public final class DevToolsWindowManager    // open/close/isOpen standalone windows
-@MainActor public final class DevToolsTabbedWindow      // open/close shared tabbed window
-public struct DevToolsCommands: Commands                 // auto-generated Developer menu
+@MainActor public final class DevToolsWindowManager    // open/close/isOpen standalone windows (macOS only; stubs on other platforms)
+@MainActor public final class DevToolsTabbedWindow      // open/close shared tabbed window (macOS only; stubs on other platforms)
+public struct DevToolsCommands: Commands                 // auto-generated Developer menu (macOS only)
 ```
+
+### Platform Availability
+
+- **Windowed** and **separateWindows** display modes are macOS-only. On iOS/tvOS/visionOS/watchOS, `openPanel()` always uses docked mode.
+- `popOutPanel()` and `closePopOut()` are no-ops on non-macOS platforms.
+- `DevToolsCommands` is only available on macOS (no menu bar on other platforms).
+- `DiagnosticExporter.export()` (NSSavePanel) is macOS-only; use `exportData()` on other platforms.
 
 ## View Modifiers
 

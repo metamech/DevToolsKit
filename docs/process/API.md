@@ -4,6 +4,7 @@
 
 > Source: `Sources/DevToolsKitProcess/`
 > Since: 0.4.0
+> **Platform:** macOS only. All types are compiled out on non-macOS platforms via `#if os(macOS)`.
 
 ## ProcessResult
 

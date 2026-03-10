@@ -60,6 +60,14 @@ let package = Package(
             name: "DevToolsKitMetricsStore",
             targets: ["DevToolsKitMetricsStore"]
         ),
+        .library(
+            name: "DevToolsKitScreenCapture",
+            targets: ["DevToolsKitScreenCapture"]
+        ),
+        .library(
+            name: "DevToolsKitIssueCapture",
+            targets: ["DevToolsKitIssueCapture"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
@@ -248,6 +256,39 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitMetricsStoreTests",
             dependencies: ["DevToolsKitMetricsStore"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .target(
+            name: "DevToolsKitScreenCapture",
+            dependencies: [
+                "DevToolsKit",
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .target(
+            name: "DevToolsKitIssueCapture",
+            dependencies: [
+                "DevToolsKit",
+                "DevToolsKitScreenCapture",
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitScreenCaptureTests",
+            dependencies: ["DevToolsKitScreenCapture"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitIssueCaptureTests",
+            dependencies: ["DevToolsKitIssueCapture"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

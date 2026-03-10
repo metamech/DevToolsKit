@@ -19,6 +19,8 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 | **[DevToolsKitCodeAnalysis](codeanalysis/GUIDE.md)** | Language-agnostic code analysis: security, performance, complexity, metrics, reports | DevToolsKit |
 | **[DevToolsKitCodeAnalysisSwift](codeanalysis-swift/GUIDE.md)** | Swift-specific analysis rules | DevToolsKitCodeAnalysis |
 | **[DevToolsKitMetricsStore](metrics-store/GUIDE.md)** | Persistent SwiftData metrics storage, enhanced queries, rollups, retention | DevToolsKitMetrics |
+| **[DevToolsKitScreenCapture](screen-capture/GUIDE.md)** | Cross-platform in-app screen capture (window, area, full screen) | DevToolsKit |
+| **[DevToolsKitIssueCapture](issue-capture/GUIDE.md)** | Recurring issue capture with provider protocol, file store, panel | DevToolsKit, DevToolsKitScreenCapture |
 
 ## Quick Links
 
@@ -74,6 +76,14 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 - [Metrics Store Guide](metrics-store/GUIDE.md) — Persistent storage, enhanced queries, rollups, retention
 - [Metrics Store API Reference](metrics-store/API.md)
 
+### Screen Capture (opt-in)
+- [Screen Capture Guide](screen-capture/GUIDE.md) — Cross-platform in-app screen capture
+- [Screen Capture API Reference](screen-capture/API.md)
+
+### Issue Capture (opt-in)
+- [Issue Capture Guide](issue-capture/GUIDE.md) — Recurring issue capture for pattern analysis
+- [Issue Capture API Reference](issue-capture/API.md)
+
 ### Cross-Module
 - [Testing Patterns](TESTING.md)
 - [AI Coding Prompts](AI_PROMPTS.md)
@@ -83,6 +93,7 @@ DevToolsKit is a multi-product Swift package. Import only what you need.
 
 | Version | Highlights |
 |---------|------------|
+| 0.5.0 | DevToolsKitScreenCapture + DevToolsKitIssueCapture modules |
 | 0.4.0 | Multi-platform support (all Apple platforms 26+), os.Logger dual logging |
 | 0.3.0 | DevToolsKitMetrics module (swift-metrics integration, metrics inspector panel) |
 | 0.2.0 | DevToolsKitLicensing module (feature flags, experimentation, license gating) |

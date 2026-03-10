@@ -22,6 +22,8 @@ Multi-product package:
 - **DevToolsKitCodeAnalysisSwift** — Swift analysis (depends on DevToolsKitCodeAnalysis): Swift-specific rules
 - **DevToolsKitCodeAnalysis** — code analysis (depends on DevToolsKit): security, performance, complexity, metrics, reports, panel
 - **DevToolsKitMetricsStore** — persistent metrics (depends on DevToolsKitMetrics + SwiftData): SwiftData models, enhanced queries, rollups, retention, MetricsDatabase facade
+- **DevToolsKitScreenCapture** — screen capture (depends on DevToolsKit): window, area, full-screen capture, export
+- **DevToolsKitIssueCapture** — issue capture (depends on DevToolsKit + DevToolsKitScreenCapture): provider protocol, file store, panel, quick capture
 
 ## Build & Test
 

@@ -73,6 +73,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
         .package(url: "https://github.com/licenseseat/licenseseat-swift.git", from: "0.3.1"),
+        .package(url: "https://github.com/metamech/SwiftUIFlowTesting.git", from: "0.1.0"),
     ],
     targets: [
         .target(
@@ -289,6 +290,16 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitIssueCaptureTests",
             dependencies: ["DevToolsKitIssueCapture"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitScreenCaptureFlowTests",
+            dependencies: [
+                "DevToolsKitScreenCapture",
+                .product(name: "SwiftUIFlowTesting", package: "SwiftUIFlowTesting"),
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

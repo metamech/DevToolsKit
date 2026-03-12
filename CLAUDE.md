@@ -20,9 +20,8 @@ Multi-product package:
 - **DevToolsKitDiff** — diff engine (no external deps): unified diff parsing, application, validation
 - **DevToolsKitCodeAnalysis** — code analysis (depends on DevToolsKit): analyzers, rules, reports, panel
 - **DevToolsKitCodeAnalysisSwift** — Swift analysis (depends on DevToolsKitCodeAnalysis): Swift-specific rules
-- **DevToolsKitCodeAnalysis** — code analysis (depends on DevToolsKit): security, performance, complexity, metrics, reports, panel
 - **DevToolsKitMetricsStore** — persistent metrics (depends on DevToolsKitMetrics + SwiftData): SwiftData models, enhanced queries, rollups, retention, MetricsDatabase facade
-- **DevToolsKitScreenCapture** — screen capture (depends on DevToolsKit): window, area, full-screen capture, export
+- **DevToolsKitScreenCapture** — screen capture (depends on DevToolsKit): capture, export, persistent store, history panel
 - **DevToolsKitIssueCapture** — issue capture (depends on DevToolsKit + DevToolsKitScreenCapture): provider protocol, file store, panel, quick capture
 
 ## Build & Test
@@ -33,6 +32,13 @@ swift test             # all tests
 swift-format lint --recursive Sources/ Tests/
 swiftlint lint
 ```
+
+Demo app (interactive panel testing, macOS only):
+```bash
+cd Examples/DevToolsKitDemo && swift run
+```
+
+UI flow tests use [SwiftUIFlowTesting](https://github.com/metamech/SwiftUIFlowTesting) (test dependency only).
 
 ## Architecture
 
@@ -97,6 +103,18 @@ docs/
 ├── security/                 # DevToolsKitSecurity
 │   ├── API.md, GUIDE.md
 ├── github/                   # DevToolsKitGitHub
+│   ├── API.md, GUIDE.md
+├── screen-capture/           # DevToolsKitScreenCapture
+│   ├── API.md, GUIDE.md
+├── issue-capture/            # DevToolsKitIssueCapture
+│   ├── API.md, GUIDE.md
+├── diff/                     # DevToolsKitDiff
+│   ├── API.md, GUIDE.md
+├── codeanalysis/             # DevToolsKitCodeAnalysis
+│   ├── API.md, GUIDE.md
+├── codeanalysis-swift/       # DevToolsKitCodeAnalysisSwift
+│   ├── API.md, GUIDE.md
+├── metrics-store/            # DevToolsKitMetricsStore
 │   ├── API.md, GUIDE.md
 ├── TESTING.md, AI_PROMPTS.md, CONTRIBUTING.md
 ```

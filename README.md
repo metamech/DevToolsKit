@@ -107,6 +107,7 @@ import DevToolsKitLicensing // opt-in
 | PermissionAuditPanel | Security | `devtools.permissions` | ⌘⌥P |
 | GitHubStatusPanel | GitHub | `devtools.github` | ⌘⌥G |
 | CodeAnalysisPanel | CodeAnalysis | `devtools.analysis` | ⌘⌥A |
+| ScreenCapturePanel | ScreenCapture | `devtools.screenCapture` | ⌘⌥H |
 | IssueCapturePanel | IssueCapture | `devtools.issueCapture` | ⌘⌥R |
 
 ## Requirements
@@ -142,7 +143,7 @@ Or in Xcode: File > Add Package Dependencies, paste the repository URL.
 - [Quick Start](docs/core/QUICK_START.md) — Add DevToolsKit to your app in 4 steps
 - [Core API](docs/core/API.md) | [Logging API](docs/logging/API.md) | [Metrics API](docs/metrics/API.md) | [Licensing API](docs/licensing/API.md) | [Process API](docs/process/API.md) | [Security API](docs/security/API.md) | [GitHub API](docs/github/API.md) | [Diff API](docs/diff/API.md) | [Code Analysis API](docs/codeanalysis/API.md) | [Swift Analysis API](docs/codeanalysis-swift/API.md) | [Screen Capture API](docs/screen-capture/API.md) | [Issue Capture API](docs/issue-capture/API.md)
 - [Feature Flags Guide](docs/licensing/FEATURE_FLAGS.md) — Define, gate, and override flags
-- [Testing Patterns](docs/TESTING.md) — Unit testing with DevToolsKit
+- [Testing Patterns](docs/TESTING.md) — Unit and UI flow testing with DevToolsKit
 - [AI Coding Prompts](docs/AI_PROMPTS.md) — Template prompts for AI assistants
 - [Contributing](docs/CONTRIBUTING.md) — Build, test, and submit changes
 

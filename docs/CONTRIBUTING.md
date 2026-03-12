@@ -4,8 +4,8 @@
 
 ## Prerequisites
 
-- macOS 15+
-- Xcode 16+
+- macOS 26+
+- Xcode 26+
 - Swift 6
 
 ## Clone, Build & Test
@@ -32,7 +32,21 @@ Sources/
 ├── DevToolsKitMetrics/       # swift-metrics integration
 ├── DevToolsKitLicensing/     # Feature flags, experimentation, licensing
 ├── DevToolsKitLicensingSeat/ # LicenseSeat backend
-└── DevToolsKitLicensingStoreKit/ # StoreKit backend
+├── DevToolsKitLicensingStoreKit/ # StoreKit backend
+├── DevToolsKitProcess/      # Process execution (macOS only)
+├── DevToolsKitSecurity/     # Permissions, sandbox, bookmarks
+├── DevToolsKitGitHub/       # GitHub REST API client
+├── DevToolsKitDiff/         # Unified diff parsing
+├── DevToolsKitCodeAnalysis/ # Code analysis engine
+├── DevToolsKitCodeAnalysisSwift/ # Swift-specific rules
+├── DevToolsKitMetricsStore/ # Persistent SwiftData metrics
+├── DevToolsKitScreenCapture/ # Screen capture + history panel
+└── DevToolsKitIssueCapture/ # Issue capture + panel
+Tests/
+├── DevToolsKit{Module}Tests/         # Unit tests per module
+└── DevToolsKit{Module}FlowTests/     # UI flow tests (SwiftUIFlowTesting)
+Examples/
+└── DevToolsKitDemo/         # Interactive demo app (macOS, all panels)
 ```
 
 ## Adding a New Panel
@@ -41,9 +55,21 @@ Sources/
 2. Add a struct conforming to `DevToolPanel` (e.g., `YourPanel.swift`)
 3. Add the panel view (e.g., `YourPanelView.swift`)
 4. Add `///` doc comments on all public items
-5. Add tests in the corresponding `Tests/` directory
-6. Update docs under `docs/` for the relevant module
-7. Run `swift build && swift test`
+5. Add unit tests in `Tests/DevToolsKit{Module}Tests/`
+6. Add UI flow tests in `Tests/DevToolsKit{Module}FlowTests/` using [SwiftUIFlowTesting](https://github.com/metamech/SwiftUIFlowTesting)
+7. Register the panel in the demo app (`Examples/DevToolsKitDemo/`)
+8. Update docs under `docs/` for the relevant module
+9. Run `swift build && swift test`
+
+## Demo App
+
+The demo app in `Examples/DevToolsKitDemo/` registers all panels with mock data for interactive testing:
+
+```bash
+cd Examples/DevToolsKitDemo && swift run
+```
+
+When adding a new panel, add it to the demo app so it can be tested interactively. Add any required mock types to `MockData.swift` and register the panel in `DevToolsKitDemoApp.swift`.
 
 ## Code Style
 

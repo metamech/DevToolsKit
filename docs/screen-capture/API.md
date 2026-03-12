@@ -8,7 +8,7 @@
 ## ScreenCaptureMode
 
 ```swift
-public enum ScreenCaptureMode: String, Sendable, CaseIterable {
+public enum ScreenCaptureMode: String, Codable, Sendable, CaseIterable {
     case window
     case area
     case fullScreen
@@ -83,6 +83,73 @@ public enum ScreenCaptureFormat: String, Sendable, CaseIterable {
 @MainActor
 public struct WindowPickerView: View {
     public init(onSelect: @escaping (NSWindow) -> Void)
+}
+```
+
+## ScreenCaptureEntry
+
+> Since: 0.5.0
+
+```swift
+public struct ScreenCaptureEntry: Codable, Sendable, Identifiable {
+    public let id: UUID
+    public let timestamp: Date
+    public let mode: ScreenCaptureMode
+    public let imageSize: CGSize
+    public let displayScale: CGFloat
+    public let imageDataSize: Int
+
+    public init(id: UUID = UUID(), timestamp: Date, mode: ScreenCaptureMode,
+                imageSize: CGSize, displayScale: CGFloat, imageDataSize: Int)
+    public init(result: ScreenCaptureResult)
+}
+```
+
+## ScreenCaptureStore
+
+> Since: 0.5.0
+
+```swift
+@MainActor @Observable
+public final class ScreenCaptureStore: Sendable {
+    public private(set) var entries: [ScreenCaptureEntry]
+    public var filterMode: ScreenCaptureMode?
+    public var filterDateRange: ClosedRange<Date>?
+    public var filteredEntries: [ScreenCaptureEntry] { get }
+    public let storageDirectory: URL
+    public let maxCaptures: Int?
+    public var totalStorageBytes: Int { get }
+
+    public init(storageDirectory: URL, maxCaptures: Int? = nil)
+
+    @discardableResult
+    public func save(_ result: ScreenCaptureResult) throws -> ScreenCaptureEntry
+    public func delete(id: UUID)
+    public func delete(ids: Set<UUID>)
+    public func loadAll() throws
+
+    public func imageData(for entry: ScreenCaptureEntry) -> Data?
+    public func thumbnailData(for entry: ScreenCaptureEntry) -> Data?
+}
+
+extension ScreenCaptureStore: DiagnosticProvider {
+    public var sectionName: String { "screenCaptures" }
+}
+```
+
+## ScreenCapturePanel
+
+> Since: 0.5.0
+
+```swift
+public struct ScreenCapturePanel: DevToolPanel {
+    public let id: String       // "devtools.screenCapture"
+    public let title: String    // "Screen Captures"
+    public let icon: String     // "photo.on.rectangle"
+    public let keyboardShortcut: DevToolsKeyboardShortcut?  // ⌘⌥H
+
+    public init(store: ScreenCaptureStore)
+    public func makeBody() -> AnyView
 }
 ```
 

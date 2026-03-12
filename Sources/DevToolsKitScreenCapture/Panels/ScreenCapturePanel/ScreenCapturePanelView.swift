@@ -12,6 +12,7 @@ import SwiftUI
 public struct ScreenCapturePanelView: View {
     @Bindable var store: ScreenCaptureStore
     @State private var selectedEntry: ScreenCaptureEntry?
+    @State private var entryPendingDeletion: ScreenCaptureEntry?
 
     /// - Parameter store: The shared screen capture store.
     public init(store: ScreenCaptureStore) {
@@ -35,7 +36,11 @@ public struct ScreenCapturePanelView: View {
                     thumbnailGrid
                 } detail: {
                     if let entry = selectedEntry {
-                        ScreenCaptureDetailView(entry: entry, store: store)
+                        ScreenCaptureDetailView(
+                            entry: entry,
+                            store: store,
+                            entryPendingDeletion: $entryPendingDeletion
+                        )
                     } else {
                         ContentUnavailableView(
                             "Select a Capture",
@@ -50,6 +55,26 @@ public struct ScreenCapturePanelView: View {
         .onAppear {
             try? store.loadAll()
         }
+        .confirmationDialog(
+            "Delete Capture",
+            isPresented: Binding(
+                get: { entryPendingDeletion != nil },
+                set: { if !$0 { entryPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let entry = entryPendingDeletion {
+                    if selectedEntry?.id == entry.id {
+                        selectedEntry = nil
+                    }
+                    store.delete(id: entry.id)
+                    entryPendingDeletion = nil
+                }
+            }
+        } message: {
+            Text("This capture and its image files will be permanently deleted.")
+        }
     }
 
     // MARK: - Toolbar
@@ -62,6 +87,7 @@ public struct ScreenCapturePanelView: View {
                     Text(mode.displayName).tag(ScreenCaptureMode?.some(mode))
                 }
             }
+            .labelsHidden()
             .frame(width: 140)
 
             Spacer()
@@ -87,31 +113,36 @@ public struct ScreenCapturePanelView: View {
                 spacing: 12
             ) {
                 ForEach(store.filteredEntries) { entry in
-                    ScreenCaptureThumbnailCard(entry: entry, store: store)
-                        .onTapGesture { selectedEntry = entry }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(
-                                    selectedEntry?.id == entry.id ? Color.accentColor : .clear,
-                                    lineWidth: 2
-                                )
-                        )
-                        .contextMenu {
-                            Button {
-                                copyToClipboard(entry: entry)
-                            } label: {
-                                Label("Copy to Clipboard", systemImage: "doc.on.clipboard")
-                            }
-                            Divider()
-                            Button(role: .destructive) {
-                                if selectedEntry?.id == entry.id {
-                                    selectedEntry = nil
-                                }
-                                store.delete(id: entry.id)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
+                    Button {
+                        selectedEntry = entry
+                    } label: {
+                        ScreenCaptureThumbnailCard(entry: entry, store: store)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        "\(entry.mode.displayName) capture, \(Int(entry.imageSize.width)) by \(Int(entry.imageSize.height)) points"
+                    )
+                    .accessibilityHint("Show capture details")
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(
+                                selectedEntry?.id == entry.id ? Color.accentColor : .clear,
+                                lineWidth: 2
+                            )
+                    )
+                    .contextMenu {
+                        Button {
+                            copyToClipboard(entry: entry)
+                        } label: {
+                            Label("Copy to Clipboard", systemImage: "doc.on.clipboard")
                         }
+                        Divider()
+                        Button(role: .destructive) {
+                            entryPendingDeletion = entry
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
             }
             .padding()
@@ -211,6 +242,7 @@ private struct ScreenCaptureThumbnailCard: View {
 private struct ScreenCaptureDetailView: View {
     let entry: ScreenCaptureEntry
     let store: ScreenCaptureStore
+    @Binding var entryPendingDeletion: ScreenCaptureEntry?
     @State private var fullImageData: Data?
 
     var body: some View {
@@ -223,6 +255,9 @@ private struct ScreenCaptureDetailView: View {
                         .aspectRatio(contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .frame(maxWidth: .infinity)
+                        .accessibilityLabel(
+                            "\(entry.mode.displayName) capture, \(Int(entry.imageSize.width)) by \(Int(entry.imageSize.height)) points"
+                        )
                 } else {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 200)
@@ -280,7 +315,7 @@ private struct ScreenCaptureDetailView: View {
                     }
 
                     Button(role: .destructive) {
-                        store.delete(id: entry.id)
+                        entryPendingDeletion = entry
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }

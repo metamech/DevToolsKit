@@ -4,6 +4,10 @@ import SwiftUI
 struct MetricsLiveView: View {
     let metricsManager: MetricsManager
     @State private var selectedIdentifier: MetricIdentifier?
+    @State private var displayedGroups: [(prefix: String, identifiers: [MetricIdentifier])] = []
+    @State private var displayedLatestValues: [MetricIdentifier: Double] = [:]
+    @State private var isLoading = true
+    @State private var refreshID = UUID()
 
     var body: some View {
         #if os(macOS)
@@ -14,11 +18,23 @@ struct MetricsLiveView: View {
             detailPane
                 .frame(minWidth: 300)
         }
+        .task(id: refreshID) {
+            await loadMetrics()
+        }
+        .task(id: FilterKey(searchText: metricsManager.searchText, filterType: metricsManager.filterType)) {
+            await loadMetrics()
+        }
         #else
         NavigationSplitView {
             metricsList
         } detail: {
             detailPane
+        }
+        .task(id: refreshID) {
+            await loadMetrics()
+        }
+        .task(id: FilterKey(searchText: metricsManager.searchText, filterType: metricsManager.filterType)) {
+            await loadMetrics()
         }
         #endif
     }
@@ -41,7 +57,10 @@ struct MetricsLiveView: View {
 
     private var metricsList: some View {
         Group {
-            if metricsManager.filteredMetrics.isEmpty {
+            if isLoading && displayedGroups.isEmpty {
+                ProgressView("Loading metrics…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if displayedGroups.isEmpty {
                 ContentUnavailableView(
                     "No Metrics",
                     systemImage: "chart.bar",
@@ -50,7 +69,7 @@ struct MetricsLiveView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: $selectedIdentifier) {
-                    ForEach(groupedMetrics, id: \.prefix) { group in
+                    ForEach(displayedGroups, id: \.prefix) { group in
                         Section(group.prefix) {
                             ForEach(group.identifiers, id: \.self) { identifier in
                                 metricRow(identifier)
@@ -77,7 +96,7 @@ struct MetricsLiveView: View {
 
             Spacer()
 
-            if let value = metricsManager.latestValues[identifier] {
+            if let value = displayedLatestValues[identifier] {
                 Text(formatValue(value, type: identifier.type))
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.blue)
@@ -85,18 +104,27 @@ struct MetricsLiveView: View {
         }
     }
 
-    private var groupedMetrics: [(prefix: String, identifiers: [MetricIdentifier])] {
+    private func loadMetrics() async {
         let metrics = metricsManager.filteredMetrics
-        var groups: [String: [MetricIdentifier]] = [:]
+        let latestValues = metricsManager.latestValues
 
+        var groups: [String: [MetricIdentifier]] = [:]
         for metric in metrics {
             let prefix = labelPrefix(metric.label)
             groups[prefix, default: []].append(metric)
         }
-
-        return groups
+        let sorted = groups
             .map { (prefix: $0.key, identifiers: $0.value) }
             .sorted { $0.prefix < $1.prefix }
+
+        displayedGroups = sorted
+        displayedLatestValues = latestValues
+        isLoading = false
+
+        // Auto-refresh after a delay to pick up new metrics
+        try? await Task.sleep(for: .milliseconds(500))
+        guard !Task.isCancelled else { return }
+        refreshID = UUID()
     }
 
     private func labelPrefix(_ label: String) -> String {
@@ -109,7 +137,6 @@ struct MetricsLiveView: View {
     private func formatValue(_ value: Double, type: MetricType) -> String {
         switch type {
         case .timer:
-            // Nanoseconds -> milliseconds
             let ms = value / 1_000_000
             return String(format: "%.2f ms", ms)
         default:
@@ -119,4 +146,10 @@ struct MetricsLiveView: View {
             return String(format: "%.4f", value)
         }
     }
+}
+
+/// Hashable key for filter-change tracking in `.task(id:)`.
+private struct FilterKey: Equatable {
+    let searchText: String
+    let filterType: MetricType?
 }

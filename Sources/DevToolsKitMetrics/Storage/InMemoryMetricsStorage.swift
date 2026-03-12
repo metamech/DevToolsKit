@@ -13,6 +13,11 @@ public final class InMemoryMetricsStorage: MetricsStorage, Sendable {
     private var entries: [MetricEntry] = []
     private var knownIdentifiers: Set<MetricIdentifier> = []
 
+    // Per-identifier index for O(K) summary lookups instead of O(N) linear scans.
+    @ObservationIgnored private var entriesByIdentifier: [MetricIdentifier: [MetricEntry]] = [:]
+    // Cached latest value per metric for O(1) lookups.
+    @ObservationIgnored private var cachedLatestValues: [MetricIdentifier: Double] = [:]
+
     /// Creates an in-memory store with the given capacity.
     ///
     /// - Parameter maxEntries: Maximum entries before FIFO eviction. Defaults to 10,000.
@@ -22,10 +27,32 @@ public final class InMemoryMetricsStorage: MetricsStorage, Sendable {
 
     public func record(_ entry: MetricEntry) {
         entries.append(entry)
-        knownIdentifiers.insert(MetricIdentifier(entry: entry))
+        let identifier = MetricIdentifier(entry: entry)
+        knownIdentifiers.insert(identifier)
+        entriesByIdentifier[identifier, default: []].append(entry)
+        cachedLatestValues[identifier] = entry.value
+
         if entries.count > maxEntries {
             let overflow = entries.count - maxEntries
+            let evicted = entries.prefix(overflow)
             entries.removeFirst(overflow)
+
+            // Remove evicted entries from per-identifier index
+            var evictedByIdentifier: [MetricIdentifier: Int] = [:]
+            for entry in evicted {
+                let id = MetricIdentifier(entry: entry)
+                evictedByIdentifier[id, default: 0] += 1
+            }
+            for (id, count) in evictedByIdentifier {
+                if var indexed = entriesByIdentifier[id] {
+                    indexed.removeFirst(min(count, indexed.count))
+                    if indexed.isEmpty {
+                        entriesByIdentifier.removeValue(forKey: id)
+                    } else {
+                        entriesByIdentifier[id] = indexed
+                    }
+                }
+            }
         }
     }
 
@@ -71,8 +98,12 @@ public final class InMemoryMetricsStorage: MetricsStorage, Sendable {
     }
 
     public func summary(for identifier: MetricIdentifier) -> MetricSummary? {
-        let matching = entries.filter { MetricIdentifier(entry: $0) == identifier }
+        let matching = entriesByIdentifier[identifier] ?? []
         return MetricsAggregation.summarize(matching, identifier: identifier)
+    }
+
+    public func latestValue(for identifier: MetricIdentifier) -> Double? {
+        cachedLatestValues[identifier]
     }
 
     public func knownMetrics() -> [MetricIdentifier] {
@@ -82,15 +113,30 @@ public final class InMemoryMetricsStorage: MetricsStorage, Sendable {
     public func clear() {
         entries.removeAll()
         knownIdentifiers.removeAll()
+        entriesByIdentifier.removeAll()
+        cachedLatestValues.removeAll()
     }
 
     public func purge(olderThan date: Date) {
         entries.removeAll { $0.timestamp < date }
-        // Rebuild known identifiers from remaining entries
+        // Rebuild indexes from remaining entries
         knownIdentifiers = Set(entries.map { MetricIdentifier(entry: $0) })
+        rebuildIndexes()
     }
 
     public var entryCount: Int {
         entries.count
+    }
+
+    // MARK: - Private
+
+    private func rebuildIndexes() {
+        entriesByIdentifier.removeAll()
+        cachedLatestValues.removeAll()
+        for entry in entries {
+            let id = MetricIdentifier(entry: entry)
+            entriesByIdentifier[id, default: []].append(entry)
+            cachedLatestValues[id] = entry.value
+        }
     }
 }

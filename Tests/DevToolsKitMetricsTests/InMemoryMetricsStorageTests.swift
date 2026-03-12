@@ -151,6 +151,96 @@ struct InMemoryMetricsStorageTests {
         #expect(store.knownMetrics().count == 1)
     }
 
+    // MARK: - latestValue(for:)
+
+    @Test func latestValueReturnsCorrectValueAfterMultipleRecords() {
+        let store = InMemoryMetricsStorage()
+        let identifier = MetricIdentifier(label: "test", dimensions: [], type: .counter)
+
+        store.record(makeEntry(label: "test", type: .counter, value: 1))
+        store.record(makeEntry(label: "test", type: .counter, value: 5))
+        store.record(makeEntry(label: "test", type: .counter, value: 3))
+
+        #expect(store.latestValue(for: identifier) == 3)
+    }
+
+    @Test func latestValueReturnsNilForUnknownIdentifier() {
+        let store = InMemoryMetricsStorage()
+        let unknown = MetricIdentifier(label: "nonexistent", dimensions: [], type: .counter)
+
+        #expect(store.latestValue(for: unknown) == nil)
+    }
+
+    @Test func latestValueCorrectAfterFIFOEviction() {
+        let store = InMemoryMetricsStorage(maxEntries: 3)
+        let idA = MetricIdentifier(label: "a", dimensions: [], type: .counter)
+        let idB = MetricIdentifier(label: "b", dimensions: [], type: .counter)
+
+        store.record(makeEntry(label: "a", type: .counter, value: 10))
+        store.record(makeEntry(label: "a", type: .counter, value: 20))
+        store.record(makeEntry(label: "b", type: .counter, value: 30))
+        // Store is full: [a=10, a=20, b=30]
+        store.record(makeEntry(label: "b", type: .counter, value: 40))
+        // After eviction: [a=20, b=30, b=40]
+
+        #expect(store.latestValue(for: idA) == 20)
+        #expect(store.latestValue(for: idB) == 40)
+
+        // Verify summary uses index too
+        let summaryA = store.summary(for: idA)
+        #expect(summaryA?.count == 1)
+        #expect(summaryA?.latest == 20)
+    }
+
+    @Test func indexCorrectAfterPurge() {
+        let store = InMemoryMetricsStorage()
+        let now = Date()
+        let hourAgo = now.addingTimeInterval(-3600)
+        let id = MetricIdentifier(label: "test", dimensions: [], type: .counter)
+
+        store.record(MetricEntry(timestamp: hourAgo, label: "test", dimensions: [], type: .counter, value: 1))
+        store.record(MetricEntry(timestamp: now, label: "test", dimensions: [], type: .counter, value: 2))
+
+        store.purge(olderThan: now.addingTimeInterval(-1800))
+
+        #expect(store.latestValue(for: id) == 2)
+        let summary = store.summary(for: id)
+        #expect(summary?.count == 1)
+    }
+
+    @Test func indexCorrectAfterClear() {
+        let store = InMemoryMetricsStorage()
+        let id = MetricIdentifier(label: "test", dimensions: [], type: .counter)
+
+        store.record(makeEntry(label: "test", type: .counter, value: 42))
+        #expect(store.latestValue(for: id) == 42)
+
+        store.clear()
+        #expect(store.latestValue(for: id) == nil)
+    }
+
+    @Test func performanceManyEntriesAcrossMetrics() {
+        let store = InMemoryMetricsStorage(maxEntries: 20_000)
+
+        // Record 10k entries across 100 metrics
+        for i in 0..<10_000 {
+            let label = "metric.\(i % 100)"
+            store.record(makeEntry(label: label, type: .counter, value: Double(i)))
+        }
+
+        // Verify latestValue is fast (O(1) per metric)
+        for m in 0..<100 {
+            let id = MetricIdentifier(label: "metric.\(m)", dimensions: [], type: .counter)
+            let value = store.latestValue(for: id)
+            #expect(value != nil)
+        }
+
+        // Verify summary uses the index (O(K) not O(N))
+        let id = MetricIdentifier(label: "metric.0", dimensions: [], type: .counter)
+        let summary = store.summary(for: id)
+        #expect(summary?.count == 100) // 10000 / 100 metrics
+    }
+
     // MARK: - Helpers
 
     private func makeEntry(

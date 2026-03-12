@@ -64,6 +64,10 @@ public protocol MetricsStorage: Sendable {
     func clear()
     func purge(olderThan date: Date)
     var entryCount: Int { get }
+
+    /// Returns the most recently recorded value for the given metric. Since 0.6.0.
+    /// Default implementation falls back to `summary(for:)?.latest`.
+    func latestValue(for identifier: MetricIdentifier) -> Double?
 }
 ```
 

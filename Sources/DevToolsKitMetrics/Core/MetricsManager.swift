@@ -43,8 +43,8 @@ public final class MetricsManager: Sendable {
     public var latestValues: [MetricIdentifier: Double] {
         var result: [MetricIdentifier: Double] = [:]
         for identifier in storage.knownMetrics() {
-            if let summary = storage.summary(for: identifier) {
-                result[identifier] = summary.latest
+            if let value = storage.latestValue(for: identifier) {
+                result[identifier] = value
             }
         }
         return result

@@ -5,19 +5,35 @@ struct MetricDetailView: View {
     let identifier: MetricIdentifier
     let metricsManager: MetricsManager
 
+    @State private var summary: MetricSummary?
+    @State private var entries: [MetricEntry] = []
+    @State private var isLoading = true
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
 
-            if let summary = metricsManager.storage.summary(for: identifier) {
+            if isLoading {
+                ProgressView("Loading…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let summary {
                 summarySection(summary)
                 Divider()
                 sparklineSection
                 Divider()
+                entriesSection
+            } else {
+                ContentUnavailableView(
+                    "No Data",
+                    systemImage: "chart.bar",
+                    description: Text("No entries found for this metric.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-
-            entriesSection
+        }
+        .task(id: identifier) {
+            await loadData()
         }
     }
 
@@ -79,8 +95,7 @@ struct MetricDetailView: View {
     }
 
     private var sparklineSection: some View {
-        let entries = recentEntries
-        return Group {
+        Group {
             if entries.count >= 2 {
                 SparklineView(values: entries.map(\.value))
                     .frame(height: 60)
@@ -90,7 +105,7 @@ struct MetricDetailView: View {
     }
 
     private var entriesSection: some View {
-        List(recentEntries) { entry in
+        List(entries) { entry in
             HStack {
                 Text(Self.timeFormatter.string(from: entry.timestamp))
                     .font(.system(.caption, design: .monospaced))
@@ -105,8 +120,10 @@ struct MetricDetailView: View {
         .listStyle(.plain)
     }
 
-    private var recentEntries: [MetricEntry] {
-        metricsManager.storage.query(
+    private func loadData() async {
+        isLoading = true
+        summary = metricsManager.storage.summary(for: identifier)
+        entries = metricsManager.storage.query(
             MetricsQuery(
                 label: identifier.label,
                 type: identifier.type,
@@ -114,6 +131,7 @@ struct MetricDetailView: View {
                 sort: .timestampDescending
             )
         )
+        isLoading = false
     }
 
     private static let timeFormatter: DateFormatter = {

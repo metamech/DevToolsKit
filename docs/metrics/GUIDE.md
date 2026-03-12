@@ -101,3 +101,9 @@ let buckets = MetricsAggregation.groupByInterval(entries, interval: 60)
 ## Storage
 
 `InMemoryMetricsStorage` is a FIFO ring buffer. When `maxEntries` is exceeded, oldest entries are evicted. For persistent storage with SwiftData, time-series aggregation, rollups, and retention policies, see [DevToolsKitMetricsStore](../metrics-store/GUIDE.md). To implement a custom storage backend, conform to `MetricsStorage`.
+
+## Performance (Since 0.6.0)
+
+`InMemoryMetricsStorage` maintains a per-identifier index internally, making `summary(for:)` O(K) where K is the number of entries for that metric (instead of scanning all N entries). A `latestValue(for:)` method provides O(1) lookup for the most recent value of any metric.
+
+The Metrics Live tab and Detail view load data asynchronously, so even with 10k+ entries the UI never blocks. Custom `MetricsStorage` implementations can override `latestValue(for:)` for optimized lookups; the default falls back to `summary(for:)?.latest`.

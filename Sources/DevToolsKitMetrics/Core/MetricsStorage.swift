@@ -26,4 +26,18 @@ public protocol MetricsStorage: Sendable {
 
     /// The total number of stored entries.
     var entryCount: Int { get }
+
+    /// Returns the most recently recorded value for the given metric identifier.
+    ///
+    /// The default implementation falls back to ``summary(for:)``. Conforming types
+    /// can override this for O(1) lookups.
+    ///
+    /// - Since: 0.6.0
+    func latestValue(for identifier: MetricIdentifier) -> Double?
+}
+
+extension MetricsStorage {
+    public func latestValue(for identifier: MetricIdentifier) -> Double? {
+        summary(for: identifier)?.latest
+    }
 }

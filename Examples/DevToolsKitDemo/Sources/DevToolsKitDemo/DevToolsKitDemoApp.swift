@@ -7,6 +7,7 @@ import DevToolsKitLogging
 import DevToolsKitMetrics
 import DevToolsKitScreenCapture
 import DevToolsKitSecurity
+import AppKit
 import Logging
 import Metrics
 import SwiftUI
@@ -70,6 +71,9 @@ struct DevToolsKitDemoApp: App {
     @State private var manager = DevToolsManager(keyPrefix: "demo")
 
     init() {
+        // Register as a foreground GUI app so windows appear when run via `swift run`
+        NSApplication.shared.setActivationPolicy(.regular)
+
         // Trigger one-time bootstrap
         _ = bootstrapOnce
 

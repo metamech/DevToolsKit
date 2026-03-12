@@ -76,6 +76,62 @@ try ScreenCaptureExporter.save(result, to: url, format: .tiff)
 
 Supported formats: `.png`, `.jpeg`, `.tiff`
 
+## Capture History Panel
+
+The `ScreenCapturePanel` provides a browsable history of captures with thumbnails, metadata, and quick export actions.
+
+```swift
+import DevToolsKitScreenCapture
+
+let captureStore = ScreenCaptureStore(
+    storageDirectory: appSupportURL.appendingPathComponent("ScreenCaptures"),
+    maxCaptures: 100  // optional FIFO limit
+)
+try captureStore.loadAll()
+
+manager.register(ScreenCapturePanel(store: captureStore))
+```
+
+### Saving Captures
+
+After taking a capture, persist it to the store:
+
+```swift
+let result = try await ScreenCapturer.captureWindow()
+try captureStore.save(result)
+```
+
+The store writes three files per capture: `{uuid}.json` (metadata), `{uuid}.png` (full image), and `{uuid}.thumb.png` (200×200 thumbnail).
+
+### Filtering
+
+```swift
+// Filter by capture mode
+captureStore.filterMode = .window
+
+// Filter by date range
+captureStore.filterDateRange = startDate...endDate
+
+// Read filtered results
+let filtered = captureStore.filteredEntries
+```
+
+### Panel Features
+
+- **Thumbnail grid** — `LazyVGrid` of capture cards with mode badge, dimensions, and timestamp
+- **Detail view** — full-resolution image, metadata table, copy/delete actions
+- **Mode filter** — toolbar picker to show only window, area, or full-screen captures
+- **Storage info** — total capture count and disk usage displayed in toolbar
+- **Context menu** — right-click to copy to clipboard or delete
+
+### Diagnostic Export
+
+`ScreenCaptureStore` conforms to `DiagnosticProvider`, reporting total count, mode breakdown, storage bytes, and recent entries (metadata only).
+
+```swift
+manager.registerDiagnosticProvider(captureStore)
+```
+
 ## Error Handling
 
 ```swift

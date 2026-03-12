@@ -107,6 +107,7 @@ import DevToolsKitLicensing // opt-in
 | PermissionAuditPanel | Security | `devtools.permissions` | ⌘⌥P |
 | GitHubStatusPanel | GitHub | `devtools.github` | ⌘⌥G |
 | CodeAnalysisPanel | CodeAnalysis | `devtools.analysis` | ⌘⌥A |
+| ScreenCapturePanel | ScreenCapture | `devtools.screenCapture` | ⌘⌥H |
 | IssueCapturePanel | IssueCapture | `devtools.issueCapture` | ⌘⌥R |
 
 ## Requirements

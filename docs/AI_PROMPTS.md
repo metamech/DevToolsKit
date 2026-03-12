@@ -55,6 +55,37 @@ Template prompts for AI coding assistants integrating DevToolsKit.
 > - Rollouts: {percentage rollout specs if any}
 > - Register `FeatureFlagsPanel` with the manager
 
+## Adding a Persistent Store with Panel (DevToolsKitScreenCapture Pattern)
+
+> Add a file-backed store and browsable panel for **{data type}**.
+> - Entry model: `{Name}Entry` — Codable, Sendable, Identifiable metadata
+> - Store: `{Name}Store` — @MainActor @Observable, file-backed with JSON + data files
+> - Panel: `{Name}Panel` — DevToolPanel with grid/list + detail view
+> - Storage layout: `{uuid}.json` (metadata) + `{uuid}.{ext}` (data files)
+> - Filtering: by {criteria}
+> - DiagnosticProvider conformance for export
+>
+> Follow the ScreenCaptureStore pattern in `Sources/DevToolsKitScreenCapture/Core/`.
+
+## Writing UI Flow Tests (SwiftUIFlowTesting)
+
+> Write flow tests for **{Panel}Panel** using SwiftUIFlowTesting.
+> - Make the store/model conform to `FlowModel`
+> - Test flows: empty state → populated, filtering, CRUD, persistence reload
+> - Use `FlowTester` with step chains: action mutates model, assert verifies state
+> - Disable snapshots with `.run(snapshotMode: .disabled)` unless visual regression is needed
+>
+> Follow the pattern in `Tests/DevToolsKitScreenCaptureFlowTests/`.
+
+## Running the Demo App
+
+> Build and run the interactive demo with all panels:
+> ```bash
+> cd Examples/DevToolsKitDemo && swift run
+> ```
+> The demo registers all 11 panels with mock data. Use the Developer menu
+> or content view buttons to open panels and test all display modes.
+
 ## Debugging Tips
 
 **Panels not showing in menu?**

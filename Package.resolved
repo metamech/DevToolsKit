@@ -1,5 +1,5 @@
 {
-  "originHash" : "539135daab584fdde8903915a2753b4405759beca63db4f432910da0959280a5",
+  "originHash" : "31d6b8eeb497db965893cc1c4814f7a7ed1847c3af3098d3678780f8809ce91a",
   "pins" : [
     {
       "identity" : "licenseseat-swift",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "f17c111cec972c2a4922cef38cf64f76f7e87886",
         "version" : "2.8.0"
+      }
+    },
+    {
+      "identity" : "swiftuiflowtesting",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/metamech/SwiftUIFlowTesting.git",
+      "state" : {
+        "revision" : "ccea8a696bdb7b9e3061d1e7a675b6d57e3be44a",
+        "version" : "0.1.1"
       }
     }
   ],

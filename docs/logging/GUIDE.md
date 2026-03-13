@@ -70,9 +70,31 @@ logStore.append(DevToolsLogEntry(
 - **Level filter** — Segmented picker: All, Debug, Info, Warning, Error
 - **Source filter** — Dropdown of all known sources
 - **Search** — Full-text search across messages
+- **Copy All** — Copy all filtered entries to clipboard as text (⌘⇧C)
+- **Export** — Export filtered entries as plain text or JSON via file save dialog
 - **Auto-scroll** — Follows new entries in real time
 - **Entry count** — Badge showing filtered count
 - **Clear** — Remove all entries
+
+## Copy & Export (since 0.6.0)
+
+All copy and export operations respect active filters (level, source, search text). These features are available on macOS and iOS; they are hidden on tvOS and watchOS.
+
+### Toolbar
+
+The toolbar includes a **Copy All** button (`doc.on.clipboard` icon) that copies all filtered entries to the clipboard as formatted text. A bounce animation confirms the copy. Keyboard shortcut: **⌘⇧C**.
+
+The **Export** menu (`square.and.arrow.up` icon) offers two options:
+- **Export as Text...** — saves entries as a plain text file
+- **Export as JSON...** — saves entries as a pretty-printed JSON array
+
+Both use SwiftUI's `.fileExporter()` for a native save dialog.
+
+### Context Menu
+
+Right-click any log row for:
+- **Copy Message** — copies just the message text
+- **Copy Entry** — copies the full formatted line (timestamp, level, source, message, metadata)
 
 ## Filtering
 

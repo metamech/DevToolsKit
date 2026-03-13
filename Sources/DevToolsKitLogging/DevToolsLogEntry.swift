@@ -2,7 +2,7 @@ import DevToolsKit
 import Foundation
 
 /// A single log entry captured by the DevTools log store.
-public struct DevToolsLogEntry: Identifiable, Sendable {
+public struct DevToolsLogEntry: Identifiable, Sendable, Codable {
     /// Unique identifier for this entry.
     public let id: UUID
     /// When the entry was created.

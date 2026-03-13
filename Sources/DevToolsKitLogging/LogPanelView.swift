@@ -3,6 +3,7 @@ import AppKit
 #endif
 import DevToolsKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Log viewer UI showing aggregated, filterable log entries with resizable columns.
 public struct LogPanelView: View {
@@ -11,6 +12,10 @@ public struct LogPanelView: View {
     @State private var timestampWidth: CGFloat
     @State private var levelWidth: CGFloat
     @State private var sourceWidth: CGFloat
+    @State private var isExporting = false
+    @State private var exportDocument: LogExportDocument?
+    @State private var exportContentType: UTType = .plainText
+    @State private var copyBounce: Int = 0
 
     private let keyPrefix: String
 
@@ -61,6 +66,22 @@ public struct LogPanelView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
                         .id(entry.id)
+                        #if !os(tvOS) && !os(watchOS)
+                        .contextMenu {
+                            Button {
+                                LogEntryFormatter.copyToClipboard(entry.message)
+                            } label: {
+                                Label("Copy Message", systemImage: "doc.on.clipboard")
+                            }
+                            Button {
+                                LogEntryFormatter.copyToClipboard(
+                                    LogEntryFormatter.formatLine(entry)
+                                )
+                            } label: {
+                                Label("Copy Entry", systemImage: "list.clipboard")
+                            }
+                        }
+                        #endif
                     }
                     .listStyle(.plain)
                     .font(.system(.caption, design: .monospaced))
@@ -73,6 +94,12 @@ public struct LogPanelView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 400)
+        .fileExporter(
+            isPresented: $isExporting,
+            document: exportDocument,
+            contentType: exportContentType,
+            defaultFilename: "logs"
+        ) { _ in }
         .onChange(of: timestampWidth) { _, value in
             UserDefaults.standard.set(value, forKey: "\(keyPrefix).logColumn.timestamp")
         }
@@ -137,6 +164,56 @@ public struct LogPanelView: View {
             Text("\(logStore.filteredEntries.count) entries")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            #if !os(tvOS) && !os(watchOS)
+            Divider()
+                .frame(height: 16)
+
+            Button {
+                let text = LogEntryFormatter.formatText(logStore.filteredEntries)
+                LogEntryFormatter.copyToClipboard(text)
+                copyBounce += 1
+            } label: {
+                Image(systemName: "doc.on.clipboard")
+                    .symbolEffect(.bounce, value: copyBounce)
+            }
+            .disabled(logStore.filteredEntries.isEmpty)
+            .help(logStore.filteredEntries.isEmpty
+                ? "No entries to copy"
+                : "Copy filtered entries to clipboard")
+            .accessibilityLabel("Copy all filtered entries to clipboard")
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+
+            Menu {
+                Button("Export as Text...") {
+                    exportDocument = LogExportDocument(
+                        entries: logStore.filteredEntries, format: .plainText
+                    )
+                    exportContentType = .plainText
+                    isExporting = true
+                }
+                Button("Export as JSON...") {
+                    exportDocument = LogExportDocument(
+                        entries: logStore.filteredEntries, format: .json
+                    )
+                    exportContentType = .json
+                    isExporting = true
+                }
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .disabled(logStore.filteredEntries.isEmpty)
+            #if os(macOS)
+            .menuStyle(.borderlessButton)
+            #endif
+            .help(logStore.filteredEntries.isEmpty
+                ? "No entries to export"
+                : "Export log entries")
+            .accessibilityLabel("Export log entries")
+
+            Divider()
+                .frame(height: 16)
+            #endif
 
             Toggle("Auto-scroll", isOn: $autoScroll)
                 #if os(macOS)

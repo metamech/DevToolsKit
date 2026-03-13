@@ -33,8 +33,10 @@ public final class DevToolsLogStore: Sendable {
 
 ## DevToolsLogEntry
 
+> Since: 0.1.0 (Codable since 0.6.0)
+
 ```swift
-public struct DevToolsLogEntry: Identifiable, Sendable {
+public struct DevToolsLogEntry: Identifiable, Sendable, Codable {
     public let id: UUID
     public let timestamp: Date
     public let level: DevToolsLogLevel
@@ -76,3 +78,35 @@ public struct LogPanel: DevToolPanel {
 ```swift
 let exporter = DiagnosticExporter(manager: manager, logStore: logStore)
 ```
+
+## LogEntryFormatter
+
+> Since: 0.6.0
+
+```swift
+public enum LogEntryFormatter: Sendable {
+    public static func formatLine(_ entry: DevToolsLogEntry) -> String
+    public static func formatText(_ entries: [DevToolsLogEntry]) -> String
+    public static func formatJSON(_ entries: [DevToolsLogEntry]) throws -> String
+    @MainActor public static func copyToClipboard(_ text: String)  // macOS/iOS only
+}
+```
+
+Formats log entries as human-readable text (ISO 8601 timestamp, 3-letter level code, source, message) or pretty-printed JSON. `copyToClipboard(_:)` is unavailable on tvOS and watchOS.
+
+## LogExportDocument
+
+> Since: 0.6.0
+
+```swift
+public struct LogExportDocument: FileDocument {
+    public init(entries: [DevToolsLogEntry], format: LogExportFormat)
+}
+
+public enum LogExportFormat: Sendable {
+    case plainText
+    case json
+}
+```
+
+A `FileDocument` for use with SwiftUI's `.fileExporter()`. Wraps formatted log entries in either plain text or JSON format.

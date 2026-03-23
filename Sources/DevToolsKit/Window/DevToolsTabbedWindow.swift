@@ -29,6 +29,7 @@ public final class DevToolsTabbedWindow {
             defer: false
         )
         window.title = "Developer Tools"
+        window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: contentView)
         window.contentMinSize = CGSize(width: 500, height: 400)
         window.center()

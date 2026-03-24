@@ -8,6 +8,7 @@ import SwiftData
 /// updates, metric discovery, and rate-of-change calculations.
 ///
 /// > Since: 0.3.0
+/// > Breaking change in 0.7.0: `execute()` is now `async`.
 @MainActor
 @Observable
 public final class MetricsDatabase: Sendable {
@@ -21,11 +22,14 @@ public final class MetricsDatabase: Sendable {
     }
 
     /// Execute a ``DatabaseQuery`` and return the result.
-    public func execute(_ query: DatabaseQuery) -> QueryResult {
-        let context = modelContainer.mainContext
+    ///
+    /// Query execution runs on a background context for heavy fetches and aggregation.
+    ///
+    /// > Since: 0.7.0 — now `async`. Previously synchronous.
+    public func execute(_ query: DatabaseQuery) async -> QueryResult {
         do {
-            return try QueryExecutor.execute(
-                query, context: context,
+            return try await QueryExecutor.execute(
+                query, modelContainer: modelContainer,
                 unflushedEntries: storage.unflushedEntries
             )
         } catch {
@@ -40,17 +44,21 @@ public final class MetricsDatabase: Sendable {
     public func stream(_ query: DatabaseQuery) -> AsyncStream<QueryResult> {
         AsyncStream { continuation in
             // Emit initial result
-            let initial = self.execute(query)
-            continuation.yield(initial)
+            let initial = Task { @MainActor [weak self] in
+                guard let self else { return }
+                let result = await self.execute(query)
+                continuation.yield(result)
+            }
 
             let task = Task { @MainActor [weak self] in
+                _ = await initial.value
                 let notifications = NotificationCenter.default.notifications(
                     named: .metricsStoreDidFlush
                 )
                 for await _ in notifications {
                     guard !Task.isCancelled else { break }
                     guard let self else { break }
-                    let result = self.execute(query)
+                    let result = await self.execute(query)
                     continuation.yield(result)
                 }
                 continuation.finish()

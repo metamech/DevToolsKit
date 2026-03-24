@@ -99,7 +99,10 @@ public enum MetricsModelTypes {
 @MainActor @Observable
 public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     public init(modelContainer: ModelContainer, batchSize: Int = 50, flushInterval: TimeInterval = 1.0)
-    public func flushNow()
+
+    /// Force-flush the current buffer to persistent storage.
+    /// Since 0.7.0: now `async` — flush work runs on a background actor.
+    public func flushNow() async
 
     // MetricsStorage conformance
     public func record(_ entry: MetricEntry)
@@ -208,7 +211,10 @@ public struct QueryResultRow: Identifiable, Sendable {
 @MainActor @Observable
 public final class MetricsDatabase: Sendable {
     public init(storage: PersistentMetricsStorage, modelContainer: ModelContainer)
-    public func execute(_ query: DatabaseQuery) -> QueryResult
+
+    /// Execute a query. Since 0.7.0: now `async` — runs on a background ModelContext.
+    public func execute(_ query: DatabaseQuery) async -> QueryResult
+
     public func stream(_ query: DatabaseQuery) -> AsyncStream<QueryResult>
     public func discover(prefix: String? = nil) -> [MetricDefinition]
     public func summary(for label: String, type: MetricType? = nil) -> MetricSummary?
@@ -252,12 +258,14 @@ public struct RetentionPolicy: Sendable {
 > Source: `Sources/DevToolsKitMetricsStore/Retention/RetentionEngine.swift`
 
 ```swift
-@MainActor
+/// Since 0.7.0: no longer `@MainActor`. Maintenance runs on a background actor.
 public final class RetentionEngine: Sendable {
     public init(modelContainer: ModelContainer, policy: RetentionPolicy = .default)
     public func start()
     public func stop()
-    public func runMaintenanceCycle()
+
+    /// Since 0.7.0: now `async`. Delegates to a background MaintenanceWorker actor.
+    public func runMaintenanceCycle() async
 }
 ```
 
@@ -287,3 +295,16 @@ public struct MetricsStack: Sendable {
 | Name | Posted When |
 |------|-------------|
 | `.metricsStoreDidFlush` | After each batch flush to persistent storage |
+
+## Breaking Changes in 0.7.0
+
+The following APIs changed from synchronous to `async` to move heavy work off the main thread:
+
+| API | Before (0.6.x) | After (0.7.0) |
+|-----|-----------------|---------------|
+| `RetentionEngine.runMaintenanceCycle()` | `func runMaintenanceCycle()` | `func runMaintenanceCycle() async` |
+| `PersistentMetricsStorage.flushNow()` | `func flushNow()` | `func flushNow() async` |
+| `MetricsDatabase.execute(_:)` | `func execute(_ query:) -> QueryResult` | `func execute(_ query:) async -> QueryResult` |
+| `RetentionEngine` | `@MainActor public final class` | `public final class` (no longer MainActor) |
+
+All callers must add `await` at call sites. The `record()` method remains synchronous.

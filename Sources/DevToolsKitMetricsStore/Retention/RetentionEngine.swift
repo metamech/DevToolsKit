@@ -12,44 +12,79 @@ import SwiftData
 /// 5. Purge daily rollups older than ``RetentionPolicy/dailyRollupTTL``
 /// 6. Update metric definitions
 ///
+/// All maintenance work runs on a background actor with a dedicated `ModelContext`,
+/// keeping the main thread free for UI work.
+///
 /// > Since: 0.3.0
-@MainActor
+/// > Breaking change in 0.7.0: `runMaintenanceCycle()` is now `async`.
 public final class RetentionEngine: Sendable {
     private let modelContainer: ModelContainer
     private let policy: RetentionPolicy
-    @ObservationIgnored private nonisolated(unsafe) var maintenanceTask: Task<Void, Never>?
+    private let lock = NSLock()
+    private nonisolated(unsafe) var _maintenanceTask: Task<Void, Never>?
+    private let worker: MaintenanceWorker
 
     /// Creates a retention engine with the given container and policy.
     public init(modelContainer: ModelContainer, policy: RetentionPolicy = .default) {
         self.modelContainer = modelContainer
         self.policy = policy
+        self.worker = MaintenanceWorker(modelContainer: modelContainer, policy: policy)
     }
 
     deinit {
-        maintenanceTask?.cancel()
+        _maintenanceTask?.cancel()
     }
 
     /// Start the periodic maintenance cycle.
+    ///
+    /// Launches a detached utility-priority task that runs maintenance at
+    /// the interval specified by the retention policy.
     public func start() {
-        guard maintenanceTask == nil else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        guard _maintenanceTask == nil else { return }
         let interval = policy.maintenanceInterval
-        maintenanceTask = Task { [weak self] in
+        let worker = self.worker
+        _maintenanceTask = Task.detached(priority: .utility) { [weak self] in
             while !Task.isCancelled {
-                await self?.runMaintenanceCycle()
+                await worker.runMaintenanceCycle()
                 try? await Task.sleep(for: .seconds(interval))
+                // Check if engine was deallocated
+                if self == nil { break }
             }
         }
     }
 
     /// Stop the periodic maintenance cycle.
     public func stop() {
-        maintenanceTask?.cancel()
-        maintenanceTask = nil
+        lock.lock()
+        defer { lock.unlock() }
+        _maintenanceTask?.cancel()
+        _maintenanceTask = nil
     }
 
     /// Run a single maintenance cycle.
-    public func runMaintenanceCycle() {
-        let context = modelContainer.mainContext
+    ///
+    /// > Since: 0.7.0 — now `async`. Previously synchronous and `@MainActor`-isolated.
+    public func runMaintenanceCycle() async {
+        await worker.runMaintenanceCycle()
+    }
+}
+
+// MARK: - MaintenanceWorker
+
+/// Background actor that performs all retention maintenance work with a dedicated `ModelContext`.
+private actor MaintenanceWorker {
+    private let modelContainer: ModelContainer
+    private let policy: RetentionPolicy
+
+    init(modelContainer: ModelContainer, policy: RetentionPolicy) {
+        self.modelContainer = modelContainer
+        self.policy = policy
+    }
+
+    func runMaintenanceCycle() async {
+        let context = ModelContext(modelContainer)
         let now = Date()
         let calendar = Calendar.current
 
@@ -58,16 +93,22 @@ public final class RetentionEngine: Sendable {
             calendar.date(
                 bySettingHour: calendar.component(.hour, from: now),
                 minute: 0, second: 0, of: now) ?? now
-        createRollups(
+        await createRollups(
             context: context,
             granularity: "hourly",
             interval: 3_600,
             boundary: hourlyBoundary
         )
 
+        guard !Task.isCancelled else { return }
+        await Task.yield()
+
         // 2. Create daily rollups from hourly rollups in completed days
         let dailyBoundary = calendar.startOfDay(for: now)
-        createDailyRollups(context: context, boundary: dailyBoundary)
+        await createDailyRollups(context: context, boundary: dailyBoundary)
+
+        guard !Task.isCancelled else { return }
+        await Task.yield()
 
         // 3. Purge raw observations
         let rawCutoff = now.addingTimeInterval(-policy.rawDataTTL)
@@ -92,6 +133,9 @@ public final class RetentionEngine: Sendable {
             where: #Predicate { $0.granularity == dailyGran && $0.bucketEnd < dailyCutoff }
         )
 
+        guard !Task.isCancelled else { return }
+        await Task.yield()
+
         // 6. Update metric definitions
         updateDefinitions(context: context)
 
@@ -105,12 +149,15 @@ public final class RetentionEngine: Sendable {
         granularity: String,
         interval: TimeInterval,
         boundary: Date
-    ) {
-        var descriptor = FetchDescriptor<MetricObservation>()
+    ) async {
+        // Filter at the database level — only fetch observations before the boundary
+        let bnd = boundary
+        var descriptor = FetchDescriptor<MetricObservation>(
+            predicate: #Predicate { $0.timestamp < bnd }
+        )
         descriptor.sortBy = [SortDescriptor(\.timestamp)]
 
-        let allObservations = (try? context.fetch(descriptor)) ?? []
-        let observations = allObservations.filter { $0.timestamp < boundary }
+        let observations = (try? context.fetch(descriptor)) ?? []
         guard !observations.isEmpty else { return }
 
         // Group by (label, typeRawValue, dimensionsKey, bucket)
@@ -131,7 +178,17 @@ public final class RetentionEngine: Sendable {
             groups[key, default: []].append(obs)
         }
 
+        // Batch-fetch existing rollups to eliminate N+1 queries
+        let existingRollupKeys = fetchExistingRollupKeys(context: context, granularity: gran)
+
+        var iterationCount = 0
         for (key, obs) in groups {
+            iterationCount += 1
+            if iterationCount % 50 == 0 {
+                guard !Task.isCancelled else { return }
+                await Task.yield()
+            }
+
             let components = key.split(separator: "|", maxSplits: 3, omittingEmptySubsequences: false)
             guard components.count == 4 else { continue }
 
@@ -142,17 +199,9 @@ public final class RetentionEngine: Sendable {
             let bucketStart = Date(timeIntervalSinceReferenceDate: bucketRef)
             let bucketEnd = bucketStart.addingTimeInterval(interval)
 
-            // Check if rollup already exists
-            let bStart = bucketStart
-            let lbl = label
-            var existingDescriptor = FetchDescriptor<MetricRollup>(
-                predicate: #Predicate {
-                    $0.label == lbl && $0.granularity == gran && $0.bucketStart == bStart
-                        && $0.dimensionsKey == dimsKey
-                }
-            )
-            existingDescriptor.fetchLimit = 1
-            if let existing = try? context.fetch(existingDescriptor), !existing.isEmpty {
+            // Check if rollup already exists using pre-fetched set
+            let rollupKey = "\(label)|\(gran)|\(dimsKey)|\(bucketStart.timeIntervalSinceReferenceDate)"
+            if existingRollupKeys.contains(rollupKey) {
                 continue
             }
 
@@ -177,13 +226,12 @@ public final class RetentionEngine: Sendable {
                 avg: avg
             )
             context.insert(rollup)
-
         }
     }
 
     // MARK: - Daily Rollups
 
-    private func createDailyRollups(context: ModelContext, boundary: Date) {
+    private func createDailyRollups(context: ModelContext, boundary: Date) async {
         let gran = "hourly"
         let bnd = boundary
         var descriptor = FetchDescriptor<MetricRollup>(
@@ -203,8 +251,18 @@ public final class RetentionEngine: Sendable {
             groups[key, default: []].append(rollup)
         }
 
+        // Batch-fetch existing daily rollups to eliminate N+1 queries
         let dailyGran = "daily"
+        let existingRollupKeys = fetchExistingRollupKeys(context: context, granularity: dailyGran)
+
+        var iterationCount = 0
         for (key, rollups) in groups {
+            iterationCount += 1
+            if iterationCount % 50 == 0 {
+                guard !Task.isCancelled else { return }
+                await Task.yield()
+            }
+
             let components = key.split(separator: "|", maxSplits: 3, omittingEmptySubsequences: false)
             guard components.count == 4 else { continue }
 
@@ -215,16 +273,9 @@ public final class RetentionEngine: Sendable {
             let dayStart = Date(timeIntervalSinceReferenceDate: dayRef)
             let dayEnd = dayStart.addingTimeInterval(86_400)
 
-            let lbl = label
-            let dStart = dayStart
-            var existingDescriptor = FetchDescriptor<MetricRollup>(
-                predicate: #Predicate {
-                    $0.label == lbl && $0.granularity == dailyGran && $0.bucketStart == dStart
-                        && $0.dimensionsKey == dimsKey
-                }
-            )
-            existingDescriptor.fetchLimit = 1
-            if let existing = try? context.fetch(existingDescriptor), !existing.isEmpty {
+            // Check if rollup already exists using pre-fetched set
+            let rollupKey = "\(label)|\(dailyGran)|\(dimsKey)|\(dayStart.timeIntervalSinceReferenceDate)"
+            if existingRollupKeys.contains(rollupKey) {
                 continue
             }
 
@@ -249,6 +300,24 @@ public final class RetentionEngine: Sendable {
             )
             context.insert(daily)
         }
+    }
+
+    // MARK: - Batch Rollup Lookup
+
+    /// Fetch all existing rollup keys for a given granularity as a set for O(1) lookup.
+    /// Eliminates N+1 per-group fetch queries.
+    private func fetchExistingRollupKeys(context: ModelContext, granularity: String) -> Set<String> {
+        let gran = granularity
+        let descriptor = FetchDescriptor<MetricRollup>(
+            predicate: #Predicate { $0.granularity == gran }
+        )
+        guard let rollups = try? context.fetch(descriptor) else { return [] }
+        var keys = Set<String>()
+        for rollup in rollups {
+            let key = "\(rollup.label)|\(rollup.granularity)|\(rollup.dimensionsKey)|\(rollup.bucketStart.timeIntervalSinceReferenceDate)"
+            keys.insert(key)
+        }
+        return keys
     }
 
     // MARK: - Definition Updates

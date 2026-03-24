@@ -13,7 +13,7 @@ struct GapFillTests {
     }
 
     @Test
-    func zeroFill() throws {
+    func zeroFill() async throws {
         let stack = try makeStack()
         let base = Date(timeIntervalSinceReferenceDate: 0)
 
@@ -28,9 +28,9 @@ struct GapFillTests {
                     value: Double(h + 1)
                 ))
         }
-        stack.storage.flushNow()
+        await stack.storage.flushNow()
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("gap"),
                 startDate: base,
@@ -51,7 +51,7 @@ struct GapFillTests {
     }
 
     @Test
-    func carryForward() throws {
+    func carryForward() async throws {
         let stack = try makeStack()
         let base = Date(timeIntervalSinceReferenceDate: 0)
 
@@ -72,9 +72,9 @@ struct GapFillTests {
                 type: .counter,
                 value: 20
             ))
-        stack.storage.flushNow()
+        await stack.storage.flushNow()
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("carry"),
                 startDate: base,
@@ -94,7 +94,7 @@ struct GapFillTests {
     }
 
     @Test
-    func noFill() throws {
+    func noFill() async throws {
         let stack = try makeStack()
         let base = Date(timeIntervalSinceReferenceDate: 0)
 
@@ -114,9 +114,9 @@ struct GapFillTests {
                 type: .counter,
                 value: 2
             ))
-        stack.storage.flushNow()
+        await stack.storage.flushNow()
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("nofill"),
                 timeBucket: .hour,

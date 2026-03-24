@@ -20,7 +20,7 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func recordAndQueryAfterFlush() throws {
+    func recordAndQueryAfterFlush() async throws {
         let storage = try makeStorage()
 
         let entry = MetricEntry(
@@ -30,7 +30,7 @@ struct PersistentMetricsStorageTests {
             value: 10.0
         )
         storage.record(entry)
-        storage.flushNow()
+        await storage.flushNow()
 
         // Give SwiftData a moment to persist
         let results = storage.query(MetricsQuery(label: "test.metric"))
@@ -58,7 +58,7 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func batchFlushTriggersAtBatchSize() throws {
+    func batchFlushTriggersAtBatchSize() async throws {
         let storage = try makeStorage(batchSize: 3)
 
         for i in 0..<3 {
@@ -71,7 +71,9 @@ struct PersistentMetricsStorageTests {
                 ))
         }
 
-        // After recording 3 entries (batch size), buffer should be flushed
+        // The batch-size flush is now async — give it a moment
+        try await Task.sleep(for: .milliseconds(100))
+
         // Query should still return all 3
         let results = storage.query(MetricsQuery(label: "batch"))
         #expect(results.count == 3)
@@ -196,11 +198,11 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func clear() throws {
+    func clear() async throws {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "c", dimensions: [], type: .counter, value: 1))
-        storage.flushNow()
+        await storage.flushNow()
 
         storage.clear()
 

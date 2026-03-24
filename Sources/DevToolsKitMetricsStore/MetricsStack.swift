@@ -9,7 +9,7 @@ import SwiftData
 ///
 /// ```swift
 /// let stack = try MetricsStack.create(inMemory: true)
-/// let result = stack.database.execute(DatabaseQuery(
+/// let result = await stack.database.execute(DatabaseQuery(
 ///     labelFilter: .prefix("http."),
 ///     timeBucket: .hour,
 ///     aggregation: .avg

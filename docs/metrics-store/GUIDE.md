@@ -9,6 +9,8 @@
 
 DevToolsKitMetricsStore provides persistent SwiftData-backed metrics storage with an enhanced query facade, automatic rollup/retention, and SwiftUI environment integration. It is an opt-in upgrade from `InMemoryMetricsStorage` for consumers who need historical queries, time-series aggregation, and retention policies.
 
+Since 0.7.0, all heavy work (flushing, querying, retention maintenance) runs on background actors with dedicated `ModelContext` instances, keeping the main thread free for UI work.
+
 ## Installation
 
 ```swift
@@ -29,8 +31,8 @@ let stack = try MetricsStack.create()
 // Bootstrap swift-metrics with the persistent storage
 MetricsSystem.bootstrap(DevToolsMetricsFactory(storage: stack.storage))
 
-// Start automatic rollups and retention
-await stack.retentionEngine.start()
+// Start automatic rollups and retention (runs on background actor)
+stack.retentionEngine.start()
 ```
 
 For testing, use an in-memory container:
@@ -41,11 +43,11 @@ let stack = try MetricsStack.create(inMemory: true)
 
 ## Querying with DatabaseQuery
 
-`DatabaseQuery` provides richer filtering than `MetricsQuery`:
+`DatabaseQuery` provides richer filtering than `MetricsQuery`. Since 0.7.0, `execute()` is async:
 
 ```swift
 // All HTTP metrics, hourly averages, last 24 hours
-let result = stack.database.execute(DatabaseQuery(
+let result = await stack.database.execute(DatabaseQuery(
     labelFilter: .prefix("http."),
     startDate: Date().addingTimeInterval(-86400),
     timeBucket: .hour,
@@ -90,7 +92,7 @@ DatabaseQuery(
 
 ```swift
 // Average latency grouped by HTTP method
-let result = stack.database.execute(DatabaseQuery(
+let result = await stack.database.execute(DatabaseQuery(
     labelFilter: .exact("http.latency"),
     aggregation: .avg,
     groupByDimension: "method"
@@ -128,9 +130,20 @@ for def in httpMetrics {
 let rate = stack.database.rate(label: "http.requests", over: 300)
 ```
 
+## Flushing
+
+The `record()` method remains synchronous (it only appends to an in-memory buffer). Flushing to SwiftData is async since 0.7.0 and runs on a background actor:
+
+```swift
+// Manual flush (async)
+await storage.flushNow()
+
+// Automatic flushing happens on a timer and when batchSize is reached
+```
+
 ## Retention Policy
 
-The `RetentionEngine` automatically creates rollups and purges old data:
+The `RetentionEngine` automatically creates rollups and purges old data. Since 0.7.0, all maintenance runs on a background actor — no main thread impact:
 
 | Preset | Raw TTL | Hourly Rollup TTL | Daily Rollup TTL | Maintenance |
 |--------|---------|-------------------|-------------------|-------------|
@@ -148,6 +161,12 @@ let stack = try MetricsStack.create(
         dailyRollupTTL: 180 * 86400
     )
 )
+```
+
+Manual maintenance cycle (async since 0.7.0):
+
+```swift
+await stack.retentionEngine.runMaintenanceCycle()
 ```
 
 ## SwiftUI Environment
@@ -168,7 +187,7 @@ struct DashboardView: View {
     @Environment(\.metricsDatabase) private var database
 
     var body: some View {
-        // Use database?.execute(...) etc.
+        // Use await database?.execute(...) in .task {} blocks
     }
 }
 ```
@@ -198,3 +217,21 @@ let storage = InMemoryMetricsStorage(maxEntries: 10_000)
 let stack = try MetricsStack.create()
 let storage = stack.storage  // conforms to MetricsStorage
 ```
+
+## Migration from 0.6.x to 0.7.0
+
+Add `await` to all calls to the following methods:
+
+```swift
+// Before (0.6.x)
+storage.flushNow()
+let result = database.execute(query)
+engine.runMaintenanceCycle()
+
+// After (0.7.0)
+await storage.flushNow()
+let result = await database.execute(query)
+await engine.runMaintenanceCycle()
+```
+
+`RetentionEngine` is no longer `@MainActor`-isolated. It can be created and used from any context. The `start()` and `stop()` methods remain synchronous.

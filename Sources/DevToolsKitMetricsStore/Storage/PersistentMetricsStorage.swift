@@ -12,9 +12,11 @@ extension Notification.Name {
 /// SwiftData-backed persistent metrics storage.
 ///
 /// Conforms to ``MetricsStorage`` for drop-in replacement of ``InMemoryMetricsStorage``.
-/// Records are buffered and flushed in batches for performance.
+/// Records are buffered and flushed in batches for performance. Flush work runs on a
+/// background actor with a dedicated `ModelContext`, keeping the main thread free.
 ///
 /// > Since: 0.3.0
+/// > Breaking change in 0.7.0: `flushNow()` is now `async`.
 @MainActor
 @Observable
 public final class PersistentMetricsStorage: MetricsStorage, Sendable {
@@ -24,6 +26,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     private var buffer: [MetricEntry] = []
     @ObservationIgnored private nonisolated(unsafe) var flushTask: Task<Void, Never>?
     private var knownIdentifiers: Set<MetricIdentifier> = []
+    private let flushWorker: FlushWorker
 
     /// Creates a persistent storage backed by the given model container.
     ///
@@ -39,6 +42,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         self.modelContainer = modelContainer
         self.batchSize = batchSize
         self.flushInterval = flushInterval
+        self.flushWorker = FlushWorker(modelContainer: modelContainer)
         scheduleFlush()
     }
 
@@ -53,7 +57,7 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         knownIdentifiers.insert(MetricIdentifier(entry: entry))
 
         if buffer.count >= batchSize {
-            flushNow()
+            Task { await flushNow() }
         }
     }
 
@@ -224,13 +228,58 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     var unflushedEntries: [MetricEntry] { buffer }
 
     /// Force-flush the current buffer to persistent storage.
-    @discardableResult
-    public func flushNow() {
+    ///
+    /// > Since: 0.7.0 — now `async`. Previously synchronous. Flush work runs on a
+    /// > background actor with a dedicated `ModelContext`.
+    public func flushNow() async {
         guard !buffer.isEmpty else { return }
         let entries = buffer
         buffer.removeAll()
 
-        let context = modelContainer.mainContext
+        await flushWorker.flush(entries)
+        NotificationCenter.default.post(name: .metricsStoreDidFlush, object: nil)
+    }
+
+    // MARK: - Private
+
+    private func scheduleFlush() {
+        flushTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(self?.flushInterval ?? 1.0))
+                guard !Task.isCancelled else { break }
+                await self?.flushNow()
+            }
+        }
+    }
+
+    private func combinePredicates(
+        _ predicates: [Predicate<MetricObservation>]
+    ) -> Predicate<MetricObservation> {
+        guard var combined = predicates.first else {
+            return #Predicate<MetricObservation> { _ in true }
+        }
+        for predicate in predicates.dropFirst() {
+            let prev = combined
+            let next = predicate
+            combined = #Predicate { prev.evaluate($0) && next.evaluate($0) }
+        }
+        return combined
+    }
+}
+
+// MARK: - FlushWorker
+
+/// Background actor that performs SwiftData inserts with a dedicated `ModelContext`.
+private actor FlushWorker {
+    private let modelContainer: ModelContainer
+
+    init(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
+    }
+
+    func flush(_ entries: [MetricEntry]) {
+        let context = ModelContext(modelContainer)
+
         for entry in entries {
             let observation = MetricObservation(entry: entry)
             context.insert(observation)
@@ -275,32 +324,5 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         }
 
         try? context.save()
-        NotificationCenter.default.post(name: .metricsStoreDidFlush, object: nil)
-    }
-
-    // MARK: - Private
-
-    private func scheduleFlush() {
-        flushTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(self?.flushInterval ?? 1.0))
-                guard !Task.isCancelled else { break }
-                self?.flushNow()
-            }
-        }
-    }
-
-    private func combinePredicates(
-        _ predicates: [Predicate<MetricObservation>]
-    ) -> Predicate<MetricObservation> {
-        guard var combined = predicates.first else {
-            return #Predicate<MetricObservation> { _ in true }
-        }
-        for predicate in predicates.dropFirst() {
-            let prev = combined
-            let next = predicate
-            combined = #Predicate { prev.evaluate($0) && next.evaluate($0) }
-        }
-        return combined
     }
 }

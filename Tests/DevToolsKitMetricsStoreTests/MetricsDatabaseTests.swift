@@ -13,7 +13,7 @@ struct MetricsDatabaseTests {
     }
 
     @Test
-    func execute() throws {
+    func execute() async throws {
         let stack = try makeStack()
 
         for i in 0..<5 {
@@ -22,9 +22,9 @@ struct MetricsDatabaseTests {
                     label: "test", dimensions: [], type: .counter, value: Double(i + 1)
                 ))
         }
-        stack.storage.flushNow()
+        await stack.storage.flushNow()
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("test"),
                 aggregation: .sum
@@ -34,13 +34,13 @@ struct MetricsDatabaseTests {
     }
 
     @Test
-    func discoverWithPrefix() throws {
+    func discoverWithPrefix() async throws {
         let stack = try makeStack()
 
         stack.storage.record(MetricEntry(label: "http.req", dimensions: [], type: .counter, value: 1))
         stack.storage.record(MetricEntry(label: "http.err", dimensions: [], type: .counter, value: 1))
         stack.storage.record(MetricEntry(label: "db.query", dimensions: [], type: .timer, value: 1))
-        stack.storage.flushNow()
+        await stack.storage.flushNow()
 
         let httpMetrics = stack.database.discover(prefix: "http.")
         #expect(httpMetrics.count == 2)
@@ -51,7 +51,7 @@ struct MetricsDatabaseTests {
     }
 
     @Test
-    func summaryForLabel() throws {
+    func summaryForLabel() async throws {
         let stack = try makeStack()
 
         for v in [10.0, 20.0, 30.0] {
@@ -124,7 +124,7 @@ struct MetricsDatabaseTests {
             MetricEntry(
                 label: "streamed", dimensions: [], type: .counter, value: 42
             ))
-        stack.storage.flushNow()
+        await stack.storage.flushNow()
 
         let stream = stack.database.stream(
             DatabaseQuery(

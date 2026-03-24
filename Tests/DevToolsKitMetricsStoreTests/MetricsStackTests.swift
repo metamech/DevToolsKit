@@ -26,7 +26,7 @@ struct MetricsStackTests {
     }
 
     @Test
-    func endToEndRecordAndQuery() throws {
+    func endToEndRecordAndQuery() async throws {
         let stack = try MetricsStack.create(inMemory: true)
 
         stack.storage.record(
@@ -37,7 +37,7 @@ struct MetricsStackTests {
                 value: 42
             ))
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("e2e.test")
             ))
@@ -46,7 +46,7 @@ struct MetricsStackTests {
     }
 
     @Test
-    func customBatchSize() throws {
+    func customBatchSize() async throws {
         let stack = try MetricsStack.create(inMemory: true, batchSize: 5)
 
         for i in 0..<10 {
@@ -59,7 +59,10 @@ struct MetricsStackTests {
                 ))
         }
 
-        let result = stack.database.execute(
+        // Wait for async batch flushes to complete
+        try await Task.sleep(for: .milliseconds(100))
+
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("batch"),
                 aggregation: .count

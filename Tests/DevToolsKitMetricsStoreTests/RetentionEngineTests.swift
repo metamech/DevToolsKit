@@ -24,7 +24,7 @@ struct RetentionEngineTests {
     }
 
     @Test
-    func hourlyRollupCreation() throws {
+    func hourlyRollupCreation() async throws {
         let (container, storage, engine) = try makeSetup()
         let twoHoursAgo = Date().addingTimeInterval(-7200)
 
@@ -39,9 +39,9 @@ struct RetentionEngineTests {
                     value: Double(i)
                 ))
         }
-        storage.flushNow()
+        await storage.flushNow()
 
-        engine.runMaintenanceCycle()
+        await engine.runMaintenanceCycle()
 
         let context = container.mainContext
         let gran = "hourly"
@@ -54,7 +54,7 @@ struct RetentionEngineTests {
     }
 
     @Test
-    func rollupAggregationAccuracy() throws {
+    func rollupAggregationAccuracy() async throws {
         let (container, storage, engine) = try makeSetup()
         let calendar = Calendar.current
 
@@ -77,9 +77,9 @@ struct RetentionEngineTests {
                     value: Double(i)
                 ))
         }
-        storage.flushNow()
+        await storage.flushNow()
 
-        engine.runMaintenanceCycle()
+        await engine.runMaintenanceCycle()
 
         let context = container.mainContext
         let lbl = "accuracy"
@@ -100,7 +100,7 @@ struct RetentionEngineTests {
     }
 
     @Test
-    func ttlPurging() throws {
+    func ttlPurging() async throws {
         let policy = RetentionPolicy(
             rawDataTTL: 3600,  // 1 hour
             hourlyRollupTTL: 7200,  // 2 hours
@@ -126,9 +126,9 @@ struct RetentionEngineTests {
                 type: .counter,
                 value: 2
             ))
-        storage.flushNow()
+        await storage.flushNow()
 
-        engine.runMaintenanceCycle()
+        await engine.runMaintenanceCycle()
 
         let context = container.mainContext
         let observations = try context.fetch(FetchDescriptor<MetricObservation>())

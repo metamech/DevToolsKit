@@ -21,7 +21,7 @@ struct DatabaseQueryTests {
         dimensions: [(String, String)] = [],
         type: MetricType = .counter,
         valueGenerator: (Int) -> Double = { Double($0) }
-    ) {
+    ) async {
         for i in 0..<count {
             storage.record(
                 MetricEntry(
@@ -32,18 +32,18 @@ struct DatabaseQueryTests {
                     value: valueGenerator(i)
                 ))
         }
-        storage.flushNow()
+        await storage.flushNow()
     }
 
     // MARK: - Label Filters
 
     @Test
-    func exactLabelFilter() throws {
+    func exactLabelFilter() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "http.requests", count: 3)
-        recordEntries(stack.storage, label: "http.errors", count: 2)
+        await recordEntries(stack.storage, label: "http.requests", count: 3)
+        await recordEntries(stack.storage, label: "http.errors", count: 2)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("http.requests")
             ))
@@ -52,13 +52,13 @@ struct DatabaseQueryTests {
     }
 
     @Test
-    func prefixLabelFilter() throws {
+    func prefixLabelFilter() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "http.requests", count: 2)
-        recordEntries(stack.storage, label: "http.errors", count: 2)
-        recordEntries(stack.storage, label: "db.queries", count: 2)
+        await recordEntries(stack.storage, label: "http.requests", count: 2)
+        await recordEntries(stack.storage, label: "http.errors", count: 2)
+        await recordEntries(stack.storage, label: "db.queries", count: 2)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .prefix("http.")
             ))
@@ -66,13 +66,13 @@ struct DatabaseQueryTests {
     }
 
     @Test
-    func containsLabelFilter() throws {
+    func containsLabelFilter() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "api.http.requests", count: 2)
-        recordEntries(stack.storage, label: "web.http.errors", count: 2)
-        recordEntries(stack.storage, label: "db.queries", count: 2)
+        await recordEntries(stack.storage, label: "api.http.requests", count: 2)
+        await recordEntries(stack.storage, label: "web.http.errors", count: 2)
+        await recordEntries(stack.storage, label: "db.queries", count: 2)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .contains("http")
             ))
@@ -82,12 +82,12 @@ struct DatabaseQueryTests {
     // MARK: - Type Filter
 
     @Test
-    func typeFilter() throws {
+    func typeFilter() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "m", count: 3, type: .counter)
-        recordEntries(stack.storage, label: "m", count: 2, type: .timer)
+        await recordEntries(stack.storage, label: "m", count: 3, type: .counter)
+        await recordEntries(stack.storage, label: "m", count: 2, type: .timer)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 typeFilter: .counter
             ))
@@ -97,12 +97,12 @@ struct DatabaseQueryTests {
     // MARK: - Time Range
 
     @Test
-    func timeRange() throws {
+    func timeRange() async throws {
         let stack = try makeStack()
         let base = Date()
-        recordEntries(stack.storage, count: 10, baseTime: base, interval: 60)
+        await recordEntries(stack.storage, count: 10, baseTime: base, interval: 60)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 startDate: base.addingTimeInterval(120),
                 endDate: base.addingTimeInterval(420)
@@ -114,12 +114,12 @@ struct DatabaseQueryTests {
     // MARK: - Dimension Filters
 
     @Test
-    func dimensionFilters() throws {
+    func dimensionFilters() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "d", count: 3, dimensions: [("env", "prod")])
-        recordEntries(stack.storage, label: "d", count: 2, dimensions: [("env", "dev")])
+        await recordEntries(stack.storage, label: "d", count: 3, dimensions: [("env", "prod")])
+        await recordEntries(stack.storage, label: "d", count: 2, dimensions: [("env", "dev")])
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("d"),
                 dimensionFilters: [("env", "prod")]
@@ -130,11 +130,11 @@ struct DatabaseQueryTests {
     // MARK: - Aggregation Functions
 
     @Test
-    func sumAggregation() throws {
+    func sumAggregation() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "a", count: 5, valueGenerator: { Double($0 + 1) })
+        await recordEntries(stack.storage, label: "a", count: 5, valueGenerator: { Double($0 + 1) })
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("a"),
                 aggregation: .sum
@@ -144,11 +144,11 @@ struct DatabaseQueryTests {
     }
 
     @Test
-    func avgAggregation() throws {
+    func avgAggregation() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "a", count: 5, valueGenerator: { Double($0 + 1) })
+        await recordEntries(stack.storage, label: "a", count: 5, valueGenerator: { Double($0 + 1) })
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("a"),
                 aggregation: .avg
@@ -158,18 +158,18 @@ struct DatabaseQueryTests {
     }
 
     @Test
-    func minMaxAggregation() throws {
+    func minMaxAggregation() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "a", count: 5, valueGenerator: { Double($0 + 1) })
+        await recordEntries(stack.storage, label: "a", count: 5, valueGenerator: { Double($0 + 1) })
 
-        let minResult = stack.database.execute(
+        let minResult = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("a"),
                 aggregation: .min
             ))
         #expect(minResult.rows[0].value == 1)
 
-        let maxResult = stack.database.execute(
+        let maxResult = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("a"),
                 aggregation: .max
@@ -178,11 +178,11 @@ struct DatabaseQueryTests {
     }
 
     @Test
-    func countAggregation() throws {
+    func countAggregation() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "a", count: 7)
+        await recordEntries(stack.storage, label: "a", count: 7)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("a"),
                 aggregation: .count
@@ -193,14 +193,14 @@ struct DatabaseQueryTests {
     // MARK: - Time Bucketing
 
     @Test
-    func timeBucketing() throws {
+    func timeBucketing() async throws {
         let stack = try makeStack()
         let base = Date(timeIntervalSinceReferenceDate: 0)
 
         // 10 entries, 1 per minute → all within 10 minutes → 1 hourly bucket
-        recordEntries(stack.storage, count: 10, baseTime: base, interval: 60)
+        await recordEntries(stack.storage, count: 10, baseTime: base, interval: 60)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 timeBucket: .hour,
                 aggregation: .sum
@@ -210,14 +210,14 @@ struct DatabaseQueryTests {
     }
 
     @Test
-    func timeBucketingMultipleBuckets() throws {
+    func timeBucketingMultipleBuckets() async throws {
         let stack = try makeStack()
         let base = Date(timeIntervalSinceReferenceDate: 0)
 
         // 120 entries, 1 per minute → spans 2 hours
-        recordEntries(stack.storage, count: 120, baseTime: base, interval: 60)
+        await recordEntries(stack.storage, count: 120, baseTime: base, interval: 60)
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 timeBucket: .hour,
                 aggregation: .count,
@@ -231,12 +231,12 @@ struct DatabaseQueryTests {
     // MARK: - Group By Dimension
 
     @Test
-    func groupByDimension() throws {
+    func groupByDimension() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, label: "g", count: 3, dimensions: [("env", "prod")], valueGenerator: { _ in 10 })
-        recordEntries(stack.storage, label: "g", count: 2, dimensions: [("env", "dev")], valueGenerator: { _ in 5 })
+        await recordEntries(stack.storage, label: "g", count: 3, dimensions: [("env", "prod")], valueGenerator: { _ in 10 })
+        await recordEntries(stack.storage, label: "g", count: 2, dimensions: [("env", "dev")], valueGenerator: { _ in 5 })
 
-        let result = stack.database.execute(
+        let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("g"),
                 aggregation: .sum,
@@ -252,19 +252,19 @@ struct DatabaseQueryTests {
     // MARK: - Sorting
 
     @Test
-    func sorting() throws {
+    func sorting() async throws {
         let stack = try makeStack()
         let base = Date(timeIntervalSinceReferenceDate: 0)
-        recordEntries(stack.storage, count: 5, baseTime: base, interval: 60, valueGenerator: { Double($0) })
+        await recordEntries(stack.storage, count: 5, baseTime: base, interval: 60, valueGenerator: { Double($0) })
 
-        let ascending = stack.database.execute(
+        let ascending = await stack.database.execute(
             DatabaseQuery(
                 sortBy: .valueAscending
             ))
         #expect(ascending.rows.first?.value == 0)
         #expect(ascending.rows.last?.value == 4)
 
-        let descending = stack.database.execute(
+        let descending = await stack.database.execute(
             DatabaseQuery(
                 sortBy: .valueDescending
             ))
@@ -275,11 +275,11 @@ struct DatabaseQueryTests {
     // MARK: - Limiting
 
     @Test
-    func limiting() throws {
+    func limiting() async throws {
         let stack = try makeStack()
-        recordEntries(stack.storage, count: 20)
+        await recordEntries(stack.storage, count: 20)
 
-        let result = stack.database.execute(DatabaseQuery(limit: 5))
+        let result = await stack.database.execute(DatabaseQuery(limit: 5))
         #expect(result.rows.count == 5)
     }
 }

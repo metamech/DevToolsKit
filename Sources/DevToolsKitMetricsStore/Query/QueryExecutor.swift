@@ -7,14 +7,21 @@ import SwiftData
 /// Responsible for strategy selection (rollups vs raw), predicate construction,
 /// and in-memory post-processing (dimension filtering, grouping, aggregation,
 /// gap filling, sorting, limiting).
-@MainActor
+///
+/// > Since: 0.7.0 — `execute()` is now `async` and uses a background `ModelContext`.
 enum QueryExecutor {
-    /// Execute a ``DatabaseQuery`` against the given model context.
+    /// Execute a ``DatabaseQuery`` against the given model container.
+    ///
+    /// Creates a background `ModelContext` for the fetch, keeping the main thread free.
+    ///
+    /// > Since: 0.7.0 — now `async`. Previously synchronous and `@MainActor`-isolated.
     static func execute(
         _ query: DatabaseQuery,
-        context: ModelContext,
+        modelContainer: ModelContainer,
         unflushedEntries: [MetricEntry] = []
-    ) throws -> QueryResult {
+    ) async throws -> QueryResult {
+        let context = ModelContext(modelContainer)
+
         // Try rollups first if preferred and applicable
         if query.preferRollups, let timeBucket = query.timeBucket,
             let agg = query.aggregation,
@@ -34,7 +41,7 @@ enum QueryExecutor {
             }
         }
 
-        return try executeFromRaw(query, context: context, unflushedEntries: unflushedEntries)
+        return try await executeFromRaw(query, context: context, unflushedEntries: unflushedEntries)
     }
 
     // MARK: - Raw Observation Path
@@ -43,7 +50,7 @@ enum QueryExecutor {
         _ query: DatabaseQuery,
         context: ModelContext,
         unflushedEntries: [MetricEntry]
-    ) throws -> QueryResult {
+    ) async throws -> QueryResult {
         var descriptor = FetchDescriptor<MetricObservation>()
         var predicates: [Predicate<MetricObservation>] = []
 
@@ -104,6 +111,8 @@ enum QueryExecutor {
                 }
             }
         }
+
+        await Task.yield()
 
         // Group and aggregate
         let rows: [QueryResultRow]

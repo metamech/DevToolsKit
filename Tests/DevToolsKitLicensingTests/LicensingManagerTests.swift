@@ -252,4 +252,67 @@ struct LicensingManagerTests {
         #expect(states[0].definition.id == "test.first")
         #expect(states[1].definition.id == "test.second")
     }
+
+    // MARK: - Effective License State
+
+    @Test func effectiveStateLicensed() {
+        let backend = MockBackend()
+        backend.status = .active
+        backend.activeEntitlements = ["premium"]
+        let (manager, _) = makeManager(backend: backend)
+        #expect(manager.effectiveState == .licensed)
+    }
+
+    @Test func effectiveStateTrial() {
+        let (manager, _) = makeManager()
+        manager.configureTrial(TrialConfiguration(durationDays: 14))
+        manager.trial?.startTrialIfNeeded()
+        #expect(manager.effectiveState == .trial(daysRemaining: manager.trial!.daysRemaining))
+    }
+
+    @Test func effectiveStateTrialExpired() {
+        let (manager, _) = makeManager()
+        manager.configureTrial(TrialConfiguration(durationDays: 0))
+        manager.trial?.startTrialIfNeeded()
+        manager.trial?.refresh()
+        #expect(manager.effectiveState == .trialExpired)
+    }
+
+    @Test func effectiveStateExpired() {
+        let (manager, _) = makeManager()
+        manager.configureTrial(TrialConfiguration(durationDays: 0))
+        manager.trial?.startTrialIfNeeded()
+        manager.trial?.wasEverLicensed = true
+        manager.trial?.refresh()
+        #expect(manager.effectiveState == .expired)
+    }
+
+    @Test func effectiveStateUnlicensed() {
+        let (manager, _) = makeManager()
+        #expect(manager.effectiveState == .unlicensed)
+    }
+
+    @Test func trialGrantsPremiumTier() {
+        let (manager, _) = makeManager()
+        let flag = FeatureFlagDefinition(
+            id: "test.premium", name: "Premium", description: "Test", category: "Test",
+            defaultEnabled: true, requiredTier: .premium)
+        manager.registerFlag(flag)
+        manager.configureTrial(TrialConfiguration(durationDays: 14))
+        manager.trial?.startTrialIfNeeded()
+
+        #expect(manager.isEnabled("test.premium") == true)
+    }
+
+    @Test func expiredStatusDoesNotSatisfyPremium() {
+        let backend = MockBackend()
+        backend.status = .expired
+        let (manager, _) = makeManager(backend: backend)
+        let flag = FeatureFlagDefinition(
+            id: "test.premium", name: "Premium", description: "Test", category: "Test",
+            defaultEnabled: true, requiredTier: .premium)
+        manager.registerFlag(flag)
+
+        #expect(manager.isEnabled("test.premium") == false)
+    }
 }

@@ -43,6 +43,7 @@ struct LicenseStatusSectionView: View {
         case .active: "checkmark.seal.fill"
         case .offlineValid: "checkmark.shield.fill"
         case .inactive: "xmark.circle"
+        case .expired: "exclamationmark.triangle"
         case .invalid: "exclamationmark.triangle.fill"
         case .pending: "clock"
         }
@@ -53,6 +54,7 @@ struct LicenseStatusSectionView: View {
         case .unconfigured: .gray
         case .active, .offlineValid: .green
         case .inactive: .orange
+        case .expired: .orange
         case .invalid: .red
         case .pending: .blue
         }

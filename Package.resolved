@@ -1,5 +1,5 @@
 {
-  "originHash" : "31d6b8eeb497db965893cc1c4814f7a7ed1847c3af3098d3678780f8809ce91a",
+  "originHash" : "610f95577fb16a8cf6f2b2b633c1ab866a415232b72250b39e33f06c1efc57c2",
   "pins" : [
     {
       "identity" : "licenseseat-swift",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "ccea8a696bdb7b9e3061d1e7a675b6d57e3be44a",
         "version" : "0.1.1"
+      }
+    },
+    {
+      "identity" : "welcomekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/metamech/WelcomeKit.git",
+      "state" : {
+        "revision" : "8eaa4d15e52abcfb330b44617b1f91d97ae57c37",
+        "version" : "0.2.0"
       }
     }
   ],

@@ -56,6 +56,14 @@ public final class MockLicenseBackend: LicenseBackend, @unchecked Sendable {
         self.activeEntitlements = entitlements
     }
 
+    /// Create a mock backend that starts in a fully licensed state.
+    ///
+    /// Use this in dev/deploy builds so developers aren't blocked by licensing
+    /// flows during normal usage. Switch to other states via the FeatureFlagsPanel.
+    public static func licensed() -> MockLicenseBackend {
+        MockLicenseBackend(status: .active, entitlements: ["premium"])
+    }
+
     // MARK: - LicenseBackend Conformance
 
     public func activate(with credential: LicenseCredential) async throws {

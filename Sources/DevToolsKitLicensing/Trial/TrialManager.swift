@@ -145,6 +145,19 @@ public final class TrialManager: Sendable {
         }
     }
 
+    /// Marks the trial as already started and welcome as already seen.
+    ///
+    /// Use in dev/deploy builds so developers aren't blocked by the welcome
+    /// screen or trial-start flow during normal usage. The trial state will
+    /// reflect the actual persisted dates (or `.notStarted` on first run,
+    /// in which case it auto-starts silently).
+    public func skipWelcomeIfNeeded() {
+        if !hasSeenWelcome {
+            hasSeenWelcome = true
+        }
+        startTrialIfNeeded()
+    }
+
     /// Resets the trial completely. **For development/testing only.**
     ///
     /// Clears the start date, duration, and welcome-seen flag.

@@ -32,6 +32,11 @@ public final class LicensingManager: Sendable {
     /// Ordered list of flag IDs in registration order.
     public private(set) var flagOrder: [String] = []
 
+    // MARK: - Trial
+
+    /// Trial manager, if configured via ``configureTrial(_:)``.
+    public private(set) var trial: TrialManager?
+
     // MARK: - Enrollment
 
     /// Enrollment ID manager for deterministic cohort/rollout assignment.
@@ -213,6 +218,57 @@ public final class LicensingManager: Sendable {
         backend.status
     }
 
+    // MARK: - Trial Configuration
+
+    /// Configure the trial subsystem.
+    ///
+    /// Call this once during app initialization, before calling `startTrialIfNeeded()`.
+    ///
+    /// - Parameter config: Trial duration and behavior settings.
+    public func configureTrial(_ config: TrialConfiguration = .init()) {
+        self.trial = TrialManager(keyPrefix: keyPrefix, configuration: config)
+    }
+
+    // MARK: - Effective License State
+
+    /// The composite licensing state, combining backend status and trial state.
+    ///
+    /// This is the primary property that UI flows should use to determine which screen to show.
+    public var effectiveState: EffectiveLicenseState {
+        let status = backend.status
+
+        // Licensed: backend reports active
+        if status == .active || status == .offlineValid {
+            return .licensed
+        }
+
+        // No trial configured: fall through to backend-only states
+        guard let trial else {
+            if status == .expired {
+                return .expired
+            }
+            return .unlicensed
+        }
+
+        // Trial active
+        if trial.state == .active {
+            return .trial(daysRemaining: trial.daysRemaining)
+        }
+
+        // Was licensed but expired
+        if trial.wasEverLicensed || status == .expired {
+            return .expired
+        }
+
+        // Trial expired, never licensed
+        if trial.state == .expired {
+            return .trialExpired
+        }
+
+        // First run, trial not started
+        return .unlicensed
+    }
+
     // MARK: - Async Observation
 
     /// An async stream that yields the flag state whenever it changes.
@@ -338,7 +394,10 @@ public final class LicensingManager: Sendable {
             return true
         case .premium:
             let status = backend.status
-            return status == .active || status == .offlineValid
+            if status == .active || status == .offlineValid { return true }
+            // Active trial grants premium access
+            if let trial, trial.state == .active { return true }
+            return false
         case .custom(let entitlement):
             return hasEntitlement(entitlement)
         }
@@ -420,25 +479,55 @@ extension LicensingManager: DiagnosticProvider {
         }
         return LicensingDiagnosticData(
             licenseStatus: licenseStatus.rawValue,
+            effectiveState: String(describing: effectiveState),
             activeEntitlements: Array(backend.activeEntitlements).sorted(),
             registeredFlagCount: flagDefinitions.count,
             overriddenFlagCount: allFlagStates.filter(\.isOverridden).count,
             flags: flags,
             enrollmentIDGeneratedAt: enrollment.generatedAt,
-            enrollmentIDExpiresAt: enrollment.expiresAt
+            enrollmentIDExpiresAt: enrollment.expiresAt,
+            trialState: trial?.state.rawValue,
+            trialDaysRemaining: trial?.daysRemaining,
+            trialStartDate: trial?.firstLaunchDate,
+            trialExpiryDate: trial?.trialExpiryDate
         )
     }
+}
+
+/// The composite licensing state that UI flows use to determine which screen to show.
+///
+/// Combines backend license status with trial state into a single actionable enum.
+public enum EffectiveLicenseState: Sendable, Equatable {
+    /// Backend reports an active or offline-valid license.
+    case licensed
+
+    /// Trial is currently active with the given number of days remaining.
+    case trial(daysRemaining: Int)
+
+    /// Trial period has elapsed and the user never purchased a license.
+    case trialExpired
+
+    /// The user was previously licensed but their license has expired.
+    case expired
+
+    /// No trial started (first launch) or no trial configured and no active license.
+    case unlicensed
 }
 
 /// Diagnostic data structure for the licensing section of diagnostic exports.
 struct LicensingDiagnosticData: Codable, Sendable {
     let licenseStatus: String
+    let effectiveState: String
     let activeEntitlements: [String]
     let registeredFlagCount: Int
     let overriddenFlagCount: Int
     let flags: [LicensingDiagnosticFlag]
     let enrollmentIDGeneratedAt: Date
     let enrollmentIDExpiresAt: Date
+    let trialState: String?
+    let trialDaysRemaining: Int?
+    let trialStartDate: Date?
+    let trialExpiryDate: Date?
 }
 
 /// Diagnostic snapshot of a single flag's state.

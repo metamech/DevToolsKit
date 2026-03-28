@@ -74,7 +74,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.5.0"),
         .package(url: "https://github.com/licenseseat/licenseseat-swift.git", from: "0.3.1"),
         .package(url: "https://github.com/metamech/SwiftUIFlowTesting.git", from: "0.1.0"),
-        .package(path: "../../../WelcomeKit"),
+        .package(url: "https://github.com/metamech/WelcomeKit.git", from: "0.2.0"),
     ],
     targets: [
         .target(

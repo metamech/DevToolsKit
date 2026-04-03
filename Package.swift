@@ -68,6 +68,10 @@ let package = Package(
             name: "DevToolsKitIssueCapture",
             targets: ["DevToolsKitIssueCapture"]
         ),
+        .library(
+            name: "DevToolsKitDaemonHealth",
+            targets: ["DevToolsKitDaemonHealth"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
@@ -292,6 +296,20 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitIssueCaptureTests",
             dependencies: ["DevToolsKitIssueCapture"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .target(
+            name: "DevToolsKitDaemonHealth",
+            dependencies: ["DevToolsKit"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitDaemonHealthTests",
+            dependencies: ["DevToolsKitDaemonHealth"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

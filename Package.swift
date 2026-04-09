@@ -189,6 +189,7 @@ let package = Package(
             name: "DevToolsKitMetricsStore",
             dependencies: [
                 "DevToolsKitMetrics",
+                .product(name: "Logging", package: "swift-log"),
                 .product(name: "Metrics", package: "swift-metrics"),
             ],
             swiftSettings: [

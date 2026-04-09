@@ -1,5 +1,6 @@
 import DevToolsKitMetrics
 import Foundation
+import Logging
 import Metrics
 import SwiftData
 
@@ -84,6 +85,13 @@ public final class RetentionEngine: Sendable {
 
 // MARK: - MaintenanceWorker
 
+extension RetentionEngine {
+    /// Number of ``MetricObservation`` rows fetched and offered to the archiver per
+    /// iteration of the TTL purge loop.  Large enough to amortise per-batch overhead;
+    /// small enough to keep individual archive calls and context saves bounded.
+    fileprivate static let ttlPurgeBatchSize: Int = 8_000
+}
+
 /// Background actor that performs all retention maintenance work with a dedicated `ModelContext`.
 private actor MaintenanceWorker {
     private let modelContainer: ModelContainer
@@ -123,10 +131,7 @@ private actor MaintenanceWorker {
 
         // 3. Purge raw observations
         let rawCutoff = now.addingTimeInterval(-policy.rawDataTTL)
-        try? context.delete(
-            model: MetricObservation.self,
-            where: #Predicate { $0.timestamp < rawCutoff }
-        )
+        await purgeTTLObservations(context: context, cutoff: rawCutoff)
 
         // 4. Purge old hourly rollups
         let hourlyCutoff = now.addingTimeInterval(-policy.hourlyRollupTTL)
@@ -187,7 +192,7 @@ private actor MaintenanceWorker {
         //
         // The context is locally scoped so it deinits before checkpointRestart,
         // releasing its sqlite3 reader lock and minimising busy-wait time.
-        try deleteToFloor()
+        try await deleteToFloor()
 
         // Phase 2 — wal_checkpoint(RESTART).
         //
@@ -207,15 +212,20 @@ private actor MaintenanceWorker {
     /// Deletes the oldest `MetricObservation` rows in 500-row batches until
     /// the table is empty.
     ///
+    /// When ``RetentionPolicy/archiver`` is set, each batch is offered to the archiver
+    /// before deletion.  Archiver errors are swallowed and logged at warning level.
+    ///
     /// We do not re-stat during deletion because WAL-inclusive size grows while
-    /// deletes are being journalled.  The hysteresis floor (`target`) is enforced
-    /// at the file level only after the subsequent `checkpointRestart` + at-launch
-    /// VACUUM have reclaimed space.
+    /// deletes are being journalled.  The hysteresis floor is enforced at the file
+    /// level only after the subsequent `checkpointRestart` + at-launch VACUUM have
+    /// reclaimed space.
     ///
     /// A locally scoped `ModelContext` deinits on return, releasing its sqlite3
     /// reader lock before `checkpointRestart` opens its handle.
-    private func deleteToFloor() throws {
+    private func deleteToFloor() async throws {
         let context = ModelContext(modelContainer)
+        let archiver = policy.archiver
+        let logger = Logger(label: "devtoolskit.metricsstore.retention")
         while true {
             var descriptor = FetchDescriptor<MetricObservation>(
                 sortBy: [SortDescriptor(\.timestamp, order: .forward)]
@@ -223,12 +233,76 @@ private actor MaintenanceWorker {
             descriptor.fetchLimit = 500
             let batch = (try? context.fetch(descriptor)) ?? []
             guard !batch.isEmpty else { break }
+            if let archiver {
+                // Safety: `batch` elements are actor-isolated @Model objects.
+                // We await the archiver before touching `batch` for deletion, so
+                // there is no concurrent access. nonisolated(unsafe) opts out of
+                // the Swift 6 region-isolation check at this specific site.
+                nonisolated(unsafe) let toArchive = batch
+                do {
+                    try await archiver.archive(observations: toArchive, reason: .sizeCap)
+                } catch {
+                    logger.warning(
+                        "RetentionArchiver failed during size-cap purge — deletion will proceed",
+                        metadata: ["error": "\(error)"]
+                    )
+                }
+            }
             for obs in batch {
                 context.delete(obs)
             }
             try? context.save()
         }
         try? context.save()
+    }
+
+    // MARK: - TTL Purge
+
+    /// Fetches and deletes `MetricObservation` rows older than `cutoff` in batches of
+    /// ``RetentionEngine/ttlPurgeBatchSize`` rows.
+    ///
+    /// When ``RetentionPolicy/archiver`` is set, each batch is offered to the archiver
+    /// before deletion.  Archiver errors are swallowed and logged at warning level.
+    ///
+    /// When no archiver is set, this falls back to the more efficient bulk
+    /// `context.delete(model:where:)` call, preserving the original behavior.
+    private func purgeTTLObservations(context: ModelContext, cutoff: Date) async {
+        if policy.archiver == nil {
+            // Fast path: no archiver — use bulk delete (original behavior).
+            try? context.delete(
+                model: MetricObservation.self,
+                where: #Predicate { $0.timestamp < cutoff }
+            )
+            return
+        }
+
+        // Slow path: archiver present — fetch → archive → delete in batches.
+        let archiver = policy.archiver
+        let logger = Logger(label: "devtoolskit.metricsstore.retention")
+        let cutoffDate = cutoff
+        while true {
+            var descriptor = FetchDescriptor<MetricObservation>(
+                predicate: #Predicate { $0.timestamp < cutoffDate },
+                sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+            )
+            descriptor.fetchLimit = RetentionEngine.ttlPurgeBatchSize
+            let batch = (try? context.fetch(descriptor)) ?? []
+            guard !batch.isEmpty else { break }
+            // Safety: see deleteToFloor — awaited before deletion, no concurrent access.
+            nonisolated(unsafe) let toArchive = batch
+            do {
+                try await archiver?.archive(observations: toArchive, reason: .ttl)
+            } catch {
+                logger.warning(
+                    "RetentionArchiver failed during TTL purge — deletion will proceed",
+                    metadata: ["error": "\(error)"]
+                )
+            }
+            for obs in batch {
+                context.delete(obs)
+            }
+            try? context.save()
+        }
     }
 
     // MARK: - Hourly Rollups

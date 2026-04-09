@@ -23,13 +23,24 @@ public struct RetentionPolicy: Sendable {
     /// Ignored when sizeCeilingBytes == nil.
     public let sizeCeilingFloorRatio: Double
 
+    /// Optional hook called with each batch of ``MetricObservation`` rows immediately
+    /// before they are permanently deleted.
+    ///
+    /// Archiver errors are logged at warning level and swallowed — a failing archiver
+    /// never prevents deletion.  `nil` (the default) preserves the existing behavior
+    /// and incurs no extra fetches.
+    ///
+    /// > Since: 0.9.0
+    public var archiver: (any RetentionArchiver)?
+
     public init(
         rawDataTTL: TimeInterval = 7 * 86_400,
         hourlyRollupTTL: TimeInterval = 90 * 86_400,
         dailyRollupTTL: TimeInterval = 365 * 86_400,
         maintenanceInterval: TimeInterval = 15 * 60,
         sizeCeilingBytes: Int64? = nil,
-        sizeCeilingFloorRatio: Double = 0.9
+        sizeCeilingFloorRatio: Double = 0.9,
+        archiver: (any RetentionArchiver)? = nil
     ) {
         precondition(
             sizeCeilingFloorRatio > 0 && sizeCeilingFloorRatio < 1,
@@ -41,6 +52,7 @@ public struct RetentionPolicy: Sendable {
         self.maintenanceInterval = maintenanceInterval
         self.sizeCeilingBytes = sizeCeilingBytes
         self.sizeCeilingFloorRatio = sizeCeilingFloorRatio
+        self.archiver = archiver
     }
 
     /// Default policy: 7d raw, 90d hourly, 365d daily, 15min maintenance.

@@ -13,16 +13,34 @@ public struct RetentionPolicy: Sendable {
     /// Interval between maintenance cycles. Defaults to 15 minutes.
     public var maintenanceInterval: TimeInterval
 
+    /// Hard ceiling on total metrics store size on disk (sum of .db + -wal + -shm).
+    /// When exceeded, the maintenance worker prunes oldest raw observations until
+    /// total size ≤ sizeCeilingBytes * sizeCeilingFloorRatio (hysteresis).
+    /// nil disables size-based pruning (default; only TTL pruning runs).
+    public let sizeCeilingBytes: Int64?
+
+    /// Low-water mark as a fraction of sizeCeilingBytes. Must be in (0.0, 1.0).
+    /// Ignored when sizeCeilingBytes == nil.
+    public let sizeCeilingFloorRatio: Double
+
     public init(
         rawDataTTL: TimeInterval = 7 * 86_400,
         hourlyRollupTTL: TimeInterval = 90 * 86_400,
         dailyRollupTTL: TimeInterval = 365 * 86_400,
-        maintenanceInterval: TimeInterval = 15 * 60
+        maintenanceInterval: TimeInterval = 15 * 60,
+        sizeCeilingBytes: Int64? = nil,
+        sizeCeilingFloorRatio: Double = 0.9
     ) {
+        precondition(
+            sizeCeilingFloorRatio > 0 && sizeCeilingFloorRatio < 1,
+            "sizeCeilingFloorRatio must be in (0.0, 1.0)"
+        )
         self.rawDataTTL = rawDataTTL
         self.hourlyRollupTTL = hourlyRollupTTL
         self.dailyRollupTTL = dailyRollupTTL
         self.maintenanceInterval = maintenanceInterval
+        self.sizeCeilingBytes = sizeCeilingBytes
+        self.sizeCeilingFloorRatio = sizeCeilingFloorRatio
     }
 
     /// Default policy: 7d raw, 90d hourly, 365d daily, 15min maintenance.

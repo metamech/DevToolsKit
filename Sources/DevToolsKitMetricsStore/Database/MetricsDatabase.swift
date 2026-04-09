@@ -1,5 +1,6 @@
 import DevToolsKitMetrics
 import Foundation
+import SQLite3
 import SwiftData
 
 /// High-level facade for querying the persistent metrics store.
@@ -101,6 +102,54 @@ public final class MetricsDatabase: Sendable {
             type: type ?? firstEntry.type
         )
         return MetricsAggregation.summarize(entries, identifier: identifier)
+    }
+
+    // MARK: - Size Management
+
+    /// Sum of main db + -wal + -shm file sizes via FileManager.attributesOfItem.
+    /// Missing sidecars count as 0.
+    public func totalOnDiskBytes() throws -> Int64 {
+        guard let config = modelContainer.configurations.first,
+              !config.isStoredInMemoryOnly
+        else { return 0 }
+        return MetricsDatabaseFileStats.totalOnDiskBytes(dbURL: config.url)
+    }
+
+    /// Deletes up to batchSize oldest rows from the raw observations table
+    /// (ORDER BY timestamp ASC LIMIT ?). Returns actual rows deleted.
+    @discardableResult
+    public func deleteOldestRawObservations(batchSize: Int) throws -> Int {
+        let context = modelContainer.mainContext
+        var descriptor = FetchDescriptor<MetricObservation>(
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+        )
+        descriptor.fetchLimit = batchSize
+        let observations = try context.fetch(descriptor)
+        guard !observations.isEmpty else { return 0 }
+        for obs in observations {
+            context.delete(obs)
+        }
+        try context.save()
+        return observations.count
+    }
+
+    /// Runs PRAGMA wal_checkpoint(TRUNCATE) then VACUUM on the store file.
+    ///
+    /// Runs `wal_checkpoint(RESTART)` on the store file via a raw sqlite3 handle.
+    ///
+    /// Flushes pending SwiftData writes first, then issues the checkpoint.
+    /// RESTART folds WAL frames into the main file and resets the WAL write
+    /// position without requiring zero active readers, so it succeeds while
+    /// SwiftData's `ModelContainer` connection remains open.
+    ///
+    /// Physical file shrinkage (VACUUM) is deferred to the next app launch;
+    /// see ``MetricsStack/create(inMemory:retentionPolicy:batchSize:)``.
+    public func checkpointAndVacuum() throws {
+        guard let config = modelContainer.configurations.first,
+              !config.isStoredInMemoryOnly
+        else { return }
+        try modelContainer.mainContext.save()
+        try MetricsDatabaseFileStats.checkpointRestart(dbURL: config.url)
     }
 
     /// Calculate the rate of change per second for a metric over the given interval.

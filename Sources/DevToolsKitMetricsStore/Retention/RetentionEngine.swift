@@ -1,5 +1,6 @@
 import DevToolsKitMetrics
 import Foundation
+import Metrics
 import SwiftData
 
 /// Manages automatic rollup creation and data retention for the metrics store.
@@ -68,6 +69,16 @@ public final class RetentionEngine: Sendable {
     /// > Since: 0.7.0 — now `async`. Previously synchronous and `@MainActor`-isolated.
     public func runMaintenanceCycle() async {
         await worker.runMaintenanceCycle()
+    }
+
+    /// Enforce the size ceiling defined in the retention policy.
+    ///
+    /// Prunes oldest raw observations until total on-disk size falls below
+    /// `sizeCeilingBytes * sizeCeilingFloorRatio`. Returns `true` if pruning
+    /// occurred, `false` if the ceiling is disabled or was not exceeded.
+    @discardableResult
+    public func enforceSizeCeiling() async throws -> Bool {
+        try await worker.enforceSizeCeiling()
     }
 }
 
@@ -139,6 +150,84 @@ private actor MaintenanceWorker {
         // 6. Update metric definitions
         updateDefinitions(context: context)
 
+        try? context.save()
+
+        guard !Task.isCancelled else { return }
+        await Task.yield()
+
+        // 7. Enforce size ceiling (hysteresis pruning)
+        _ = try? await enforceSizeCeiling()
+    }
+
+    // MARK: - Size Cap
+
+    @discardableResult
+    func enforceSizeCeiling() async throws -> Bool {
+        guard let ceiling = policy.sizeCeilingBytes else { return false }
+
+        guard let config = modelContainer.configurations.first,
+              !config.isStoredInMemoryOnly
+        else { return false }
+        let dbURL = config.url
+
+        // Pre-check: if already under ceiling, nothing to do.
+        // We measure WAL-inclusive size: db + -wal + -shm.
+        guard MetricsDatabaseFileStats.totalOnDiskBytes(dbURL: dbURL) > ceiling else {
+            return false
+        }
+
+        // Phase 1 — prune oldest observations in 500-row batches.
+        //
+        // WAL-inclusive size grows during active deletes (each save() appends
+        // WAL frames), so we do NOT re-stat mid-loop.  Instead we drain enough
+        // rows to bring the logical data volume below the hysteresis floor,
+        // trusting that the subsequent RESTART checkpoint will fold those frames
+        // into the main file.  VACUUM (which physically shrinks the .db) is
+        // deferred to the next app launch — see MetricsStack.create.
+        //
+        // The context is locally scoped so it deinits before checkpointRestart,
+        // releasing its sqlite3 reader lock and minimising busy-wait time.
+        try deleteToFloor()
+
+        // Phase 2 — wal_checkpoint(RESTART).
+        //
+        // Folds all committed WAL frames back into the main file and resets the
+        // WAL write position.  RESTART does not require zero active readers (unlike
+        // TRUNCATE), so it succeeds while SwiftData's ModelContainer is open.
+        // sqlite3_busy_timeout(5000) handles any transient lock contention.
+        //
+        // Errors surface to the caller; the maintenance cycle swallows them with
+        // try? so a single bad checkpoint does not abort the cycle.
+        try MetricsDatabaseFileStats.checkpointRestart(dbURL: dbURL)
+
+        Counter(label: "devtoolskit.metrics.sizecap.triggered").increment()
+        return true
+    }
+
+    /// Deletes the oldest `MetricObservation` rows in 500-row batches until
+    /// the table is empty.
+    ///
+    /// We do not re-stat during deletion because WAL-inclusive size grows while
+    /// deletes are being journalled.  The hysteresis floor (`target`) is enforced
+    /// at the file level only after the subsequent `checkpointRestart` + at-launch
+    /// VACUUM have reclaimed space.
+    ///
+    /// A locally scoped `ModelContext` deinits on return, releasing its sqlite3
+    /// reader lock before `checkpointRestart` opens its handle.
+    private func deleteToFloor() throws {
+        let context = ModelContext(modelContainer)
+        while true {
+            var descriptor = FetchDescriptor<MetricObservation>(
+                sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+            )
+            descriptor.fetchLimit = 500
+            let batch = (try? context.fetch(descriptor)) ?? []
+            guard !batch.isEmpty else { break }
+            for obs in batch {
+                context.delete(obs)
+            }
+            try? context.save()
+        }
         try? context.save()
     }
 

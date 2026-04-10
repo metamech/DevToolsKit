@@ -128,17 +128,17 @@ struct InMemoryMetricsStorageTests {
         #expect(known.count == 2)
     }
 
-    @Test func clear() {
+    @Test func clear() async {
         let store = InMemoryMetricsStorage()
         store.record(makeEntry(label: "test", type: .counter, value: 1))
         #expect(store.entryCount == 1)
 
-        store.clear()
+        await store.clear()
         #expect(store.entryCount == 0)
         #expect(store.knownMetrics().isEmpty)
     }
 
-    @Test func purge() {
+    @Test func purge() async {
         let store = InMemoryMetricsStorage()
         let now = Date()
         let hourAgo = now.addingTimeInterval(-3600)
@@ -146,7 +146,7 @@ struct InMemoryMetricsStorageTests {
         store.record(MetricEntry(timestamp: hourAgo, label: "old", dimensions: [], type: .counter, value: 1))
         store.record(MetricEntry(timestamp: now, label: "new", dimensions: [], type: .counter, value: 2))
 
-        store.purge(olderThan: now.addingTimeInterval(-1800))
+        await store.purge(olderThan: now.addingTimeInterval(-1800))
         #expect(store.entryCount == 1)
         #expect(store.knownMetrics().count == 1)
     }
@@ -192,7 +192,7 @@ struct InMemoryMetricsStorageTests {
         #expect(summaryA?.latest == 20)
     }
 
-    @Test func indexCorrectAfterPurge() {
+    @Test func indexCorrectAfterPurge() async {
         let store = InMemoryMetricsStorage()
         let now = Date()
         let hourAgo = now.addingTimeInterval(-3600)
@@ -201,21 +201,21 @@ struct InMemoryMetricsStorageTests {
         store.record(MetricEntry(timestamp: hourAgo, label: "test", dimensions: [], type: .counter, value: 1))
         store.record(MetricEntry(timestamp: now, label: "test", dimensions: [], type: .counter, value: 2))
 
-        store.purge(olderThan: now.addingTimeInterval(-1800))
+        await store.purge(olderThan: now.addingTimeInterval(-1800))
 
         #expect(store.latestValue(for: id) == 2)
         let summary = store.summary(for: id)
         #expect(summary?.count == 1)
     }
 
-    @Test func indexCorrectAfterClear() {
+    @Test func indexCorrectAfterClear() async {
         let store = InMemoryMetricsStorage()
         let id = MetricIdentifier(label: "test", dimensions: [], type: .counter)
 
         store.record(makeEntry(label: "test", type: .counter, value: 42))
         #expect(store.latestValue(for: id) == 42)
 
-        store.clear()
+        await store.clear()
         #expect(store.latestValue(for: id) == nil)
     }
 

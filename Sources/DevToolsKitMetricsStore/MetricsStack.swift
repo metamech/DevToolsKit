@@ -4,8 +4,10 @@ import SwiftData
 
 /// Convenience factory for bootstrapping the full metrics persistence stack.
 ///
-/// Creates and wires together a ``PersistentMetricsStorage``, ``MetricsDatabase``,
-/// and ``RetentionEngine`` backed by a single `ModelContainer`.
+/// Creates and wires together a ``MetricsStoreActor``, ``PersistentMetricsStorage``,
+/// ``MetricsDatabase``, and ``RetentionEngine`` backed by a single `ModelContainer`.
+/// All SwiftData operations are serialized through the single actor, eliminating
+/// concurrent-context data races (#1460).
 ///
 /// ```swift
 /// let stack = try MetricsStack.create(inMemory: true)
@@ -32,8 +34,12 @@ import SwiftData
 /// See `docs/ADR/ADR-001-metrics-size-cap-deferred-vacuum.md`.
 ///
 /// > Since: 0.3.0
+/// > Breaking change in 0.11.0: `actor` field added; all components share
+/// > one ``MetricsStoreActor`` — the pit-of-success wiring for #1460.
 @MainActor
 public struct MetricsStack: Sendable {
+    /// The shared actor that owns the sole production `ModelContext`.
+    public let actor: MetricsStoreActor
     /// The persistent storage backend.
     public let storage: PersistentMetricsStorage
     /// The query facade.
@@ -48,7 +54,7 @@ public struct MetricsStack: Sendable {
         MetricsModelTypes.all
     }
 
-    /// Create a complete metrics stack.
+    /// Create a complete metrics stack with all components wired to a single actor.
     ///
     /// When `retentionPolicy.sizeCeilingBytes` is non-nil and the store file
     /// already exists, a `wal_checkpoint(TRUNCATE)` + `VACUUM` is run before
@@ -103,11 +109,17 @@ public struct MetricsStack: Sendable {
         }
 
         let container = try ModelContainer(for: schema, configurations: [config])
-        let storage = PersistentMetricsStorage(modelContainer: container, batchSize: batchSize)
-        let database = MetricsDatabase(storage: storage, modelContainer: container)
-        let engine = RetentionEngine(modelContainer: container, policy: retentionPolicy)
+        let metricsActor = MetricsStoreActor(modelContainer: container)
+        let storage = PersistentMetricsStorage(
+            metricsActor: metricsActor,
+            modelContainer: container,
+            batchSize: batchSize
+        )
+        let database = MetricsDatabase(storage: storage, modelContainer: container, metricsActor: metricsActor)
+        let engine = RetentionEngine(metricsActor: metricsActor, policy: retentionPolicy)
 
         return MetricsStack(
+            actor: metricsActor,
             storage: storage,
             database: database,
             retentionEngine: engine,

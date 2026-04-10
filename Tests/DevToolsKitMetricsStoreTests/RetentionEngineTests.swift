@@ -16,10 +16,11 @@ struct RetentionEngineTests {
         let schema = Schema(MetricsModelTypes.all)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
+        let actor = MetricsStoreActor(modelContainer: container)
         let storage = PersistentMetricsStorage(
-            modelContainer: container, batchSize: 1000, flushInterval: 60
+            metricsActor: actor, modelContainer: container, batchSize: 1000, flushInterval: 60
         )
-        let engine = RetentionEngine(modelContainer: container, policy: policy)
+        let engine = RetentionEngine(metricsActor: actor, policy: policy)
         return (container, storage, engine)
     }
 
@@ -41,7 +42,7 @@ struct RetentionEngineTests {
         }
         await storage.flushNow()
 
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         let context = container.mainContext
         let gran = "hourly"
@@ -79,7 +80,7 @@ struct RetentionEngineTests {
         }
         await storage.flushNow()
 
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         let context = container.mainContext
         let lbl = "accuracy"
@@ -128,7 +129,7 @@ struct RetentionEngineTests {
             ))
         await storage.flushNow()
 
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         let context = container.mainContext
         let observations = try context.fetch(FetchDescriptor<MetricObservation>())

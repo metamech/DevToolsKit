@@ -12,7 +12,9 @@ struct PersistentMetricsStorageTests {
         let schema = Schema(MetricsModelTypes.all)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
+        let actor = MetricsStoreActor(modelContainer: container)
         return PersistentMetricsStorage(
+            metricsActor: actor,
             modelContainer: container,
             batchSize: batchSize,
             flushInterval: 60  // long interval so we control flushing manually
@@ -204,7 +206,7 @@ struct PersistentMetricsStorageTests {
         storage.record(MetricEntry(label: "c", dimensions: [], type: .counter, value: 1))
         await storage.flushNow()
 
-        storage.clear()
+        await storage.clear()
 
         #expect(storage.entryCount == 0)
         #expect(storage.knownMetrics().isEmpty)

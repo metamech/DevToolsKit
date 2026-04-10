@@ -54,7 +54,7 @@ public struct MetricsPanelView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Button(action: { metricsManager.clear() }) {
+            Button(action: { Task { await metricsManager.clear() } }) {
                 Image(systemName: "trash")
             }
             .help("Clear all metrics")

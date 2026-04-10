@@ -20,13 +20,12 @@ final class StubArchiver: Sendable, RetentionArchiver {
     nonisolated(unsafe) private var _calls: [ArchiveCall] = []
     nonisolated(unsafe) private var _shouldThrow: Bool = false
 
-    func archive(observations: [MetricObservation], reason: RetentionPruneReason) async throws {
+    func archive(observations: [ArchivedObservation], reason: RetentionPruneReason) async throws {
         // Use dispatch queue's sync method to safely access shared state from async context
         try queue.sync {
             if _shouldThrow {
                 throw TestError.archiveFailure
             }
-            // Store only the count and reason (observations are @Model objects, not Sendable)
             _calls.append(ArchiveCall(observationCount: observations.count, reason: reason))
         }
     }

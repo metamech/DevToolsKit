@@ -5,12 +5,12 @@ import Foundation
 final class DevToolsCounterHandler: CounterHandler, @unchecked Sendable {
     private let label: String
     private let dimensions: [(String, String)]
-    private let storage: any MetricsStorage
+    private let batcher: MetricsBatcher
 
-    init(label: String, dimensions: [(String, String)], storage: any MetricsStorage) {
+    init(label: String, dimensions: [(String, String)], batcher: MetricsBatcher) {
         self.label = label
         self.dimensions = dimensions
-        self.storage = storage
+        self.batcher = batcher
     }
 
     func increment(by amount: Int64) {
@@ -20,9 +20,7 @@ final class DevToolsCounterHandler: CounterHandler, @unchecked Sendable {
             type: .counter,
             value: Double(amount)
         )
-        Task { @MainActor in
-            storage.record(entry)
-        }
+        batcher.append(entry)
     }
 
     func reset() {}

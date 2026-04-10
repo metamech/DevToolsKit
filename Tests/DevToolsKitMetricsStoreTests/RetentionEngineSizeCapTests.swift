@@ -37,13 +37,15 @@ struct RetentionEngineSizeCapTests {
         let config = ModelConfiguration(schema: schema, url: dbURL)
         let container = try ModelContainer(for: schema, configurations: [config])
 
+        let metricsActor = MetricsStoreActor(modelContainer: container)
         let storage = PersistentMetricsStorage(
-            modelContainer: container, batchSize: 1000, flushInterval: 60
+            metricsActor: metricsActor, modelContainer: container, batchSize: 1000, flushInterval: 60
         )
-        let database = MetricsDatabase(storage: storage, modelContainer: container)
-        let engine = RetentionEngine(modelContainer: container, policy: policy)
+        let database = MetricsDatabase(storage: storage, modelContainer: container, metricsActor: metricsActor)
+        let engine = RetentionEngine(metricsActor: metricsActor, policy: policy)
 
         let stack = MetricsStack(
+            actor: metricsActor,
             storage: storage,
             database: database,
             retentionEngine: engine,

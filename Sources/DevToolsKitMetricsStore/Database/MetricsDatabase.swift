@@ -8,34 +8,33 @@ import SwiftData
 /// Provides a rich query API including time-bucketed aggregation, streaming
 /// updates, metric discovery, and rate-of-change calculations.
 ///
-/// When a ``MetricsStoreActor`` is injected at init time, all fetch and delete
-/// operations are routed through the actor's single `ModelContext`, preventing
-/// concurrent-context data races (issue #1429).  Without an actor, the
-/// original background-context behavior is preserved for backward compatibility.
+/// All fetch and delete operations are routed through the injected
+/// ``MetricsStoreActor``, which owns the sole production `ModelContext`.
+/// This prevents concurrent-context data races (issue #1429, #1460).
 ///
 /// > Since: 0.3.0
 /// > Breaking change in 0.7.0: `execute()` is now `async`.
-/// > Breaking change in 0.11.0: `init(storage:modelContainer:metricsActor:)` adds
-/// > optional actor injection.
+/// > Breaking change in 0.11.0: `metricsActor` is now required.
 @MainActor
 @Observable
 public final class MetricsDatabase: Sendable {
     private let storage: PersistentMetricsStorage
     private let modelContainer: ModelContainer
-    private let metricsActor: MetricsStoreActor?
+    private let metricsActor: MetricsStoreActor
 
-    /// Creates a database facade backed by the given storage and container.
+    /// Creates a database facade backed by the given storage, container, and actor.
     ///
     /// - Parameters:
     ///   - storage: The storage backend that maintains the in-memory flush buffer.
     ///   - modelContainer: The SwiftData container backing the metrics store.
-    ///   - metricsActor: When non-nil, all fetch operations are routed through
-    ///     the actor's single `ModelContext`, serializing reads against concurrent
-    ///     retention deletes. Pass the same actor used by ``RetentionEngineAdapter``.
+    ///   - metricsActor: All fetch and delete operations are routed through the
+    ///     actor's single `ModelContext`, serializing reads against concurrent
+    ///     retention operations. Must be the same actor used by ``RetentionEngine``
+    ///     and ``PersistentMetricsStorage``.
     public init(
         storage: PersistentMetricsStorage,
         modelContainer: ModelContainer,
-        metricsActor: MetricsStoreActor? = nil
+        metricsActor: MetricsStoreActor
     ) {
         self.storage = storage
         self.modelContainer = modelContainer
@@ -44,26 +43,13 @@ public final class MetricsDatabase: Sendable {
 
     /// Execute a ``DatabaseQuery`` and return the result.
     ///
-    /// When a ``MetricsStoreActor`` was injected at init time, the fetch runs
-    /// on the actor's context, serialized against concurrent retention deletes.
-    /// Otherwise, a new background `ModelContext` is created per call (original
-    /// behavior).
+    /// The fetch runs on the actor's context, serialized against concurrent
+    /// retention operations.
     ///
     /// > Since: 0.7.0 — now `async`. Previously synchronous.
     public func execute(_ query: DatabaseQuery) async -> QueryResult {
-        if let actor = metricsActor {
-            do {
-                return try await actor.execute(query, unflushedEntries: storage.unflushedEntries)
-            } catch {
-                return QueryResult(rows: [])
-            }
-        }
-        // Fallback: original behavior — new background context per call.
         do {
-            return try await QueryExecutor.execute(
-                query, modelContainer: modelContainer,
-                unflushedEntries: storage.unflushedEntries
-            )
+            return try await metricsActor.execute(query, unflushedEntries: storage.unflushedEntries)
         } catch {
             return QueryResult(rows: [])
         }
@@ -102,17 +88,9 @@ public final class MetricsDatabase: Sendable {
     }
 
     /// Discover known metrics, optionally filtered by label prefix.
-    public func discover(prefix: String? = nil) -> [MetricDefinition] {
-        let context = modelContainer.mainContext
-        let descriptor = FetchDescriptor<MetricDefinition>(
-            sortBy: [SortDescriptor(\.label)]
-        )
-        let definitions = (try? context.fetch(descriptor)) ?? []
-
-        if let prefix {
-            return definitions.filter { $0.label.hasPrefix(prefix) }
-        }
-        return definitions
+    public func discover(prefix: String? = nil) async -> [MetricDefinitionDTO] {
+        let dtos = (try? await metricsActor.discover(prefix: prefix)) ?? []
+        return dtos
     }
 
     /// Compute summary statistics for a specific metric.
@@ -148,28 +126,16 @@ public final class MetricsDatabase: Sendable {
     /// Deletes up to batchSize oldest rows from the raw observations table
     /// (ORDER BY timestamp ASC LIMIT ?). Returns actual rows deleted.
     @discardableResult
-    public func deleteOldestRawObservations(batchSize: Int) throws -> Int {
-        let context = modelContainer.mainContext
-        var descriptor = FetchDescriptor<MetricObservation>(
-            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
-        )
-        descriptor.fetchLimit = batchSize
-        let observations = try context.fetch(descriptor)
-        guard !observations.isEmpty else { return 0 }
-        for obs in observations {
-            context.delete(obs)
-        }
-        try context.save()
-        return observations.count
+    public func deleteOldestRawObservations(batchSize: Int) async throws -> Int {
+        try await metricsActor.deleteOldestRawObservations(batchSize: batchSize)
     }
 
     /// Runs PRAGMA wal_checkpoint(RESTART) then VACUUM on the store file.
-    public func checkpointAndVacuum() throws {
+    public func checkpointAndVacuum() async throws {
         guard let config = modelContainer.configurations.first,
               !config.isStoredInMemoryOnly
         else { return }
-        try modelContainer.mainContext.save()
-        try MetricsDatabaseFileStats.checkpointRestart(dbURL: config.url)
+        try await metricsActor.checkpointAndVacuum(dbURL: config.url)
     }
 
     /// Calculate the rate of change per second for a metric over the given interval.

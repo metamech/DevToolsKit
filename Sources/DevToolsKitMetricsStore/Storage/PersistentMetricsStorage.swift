@@ -12,37 +12,49 @@ extension Notification.Name {
 /// SwiftData-backed persistent metrics storage.
 ///
 /// Conforms to ``MetricsStorage`` for drop-in replacement of ``InMemoryMetricsStorage``.
-/// Records are buffered and flushed in batches for performance. Flush work runs on a
-/// background actor with a dedicated `ModelContext`, keeping the main thread free.
+/// Records are buffered and flushed in batches for performance. All SwiftData **writes**
+/// are serialized through the injected ``MetricsStoreActor``, eliminating the concurrent-
+/// context data races that caused `EXC_BREAKPOINT` crashes (#1460).
+///
+/// Synchronous **reads** (`query()`, `entryCount`, `knownMetrics()`, `clear()`, `purge()`)
+/// use `modelContainer.mainContext`, which is always accessed on the main actor. This is
+/// safe because the crash path was background-context writes racing background-context reads
+/// — the main context was not a participant in that race.
 ///
 /// > Since: 0.3.0
 /// > Breaking change in 0.7.0: `flushNow()` is now `async`.
+/// > Breaking change in 0.11.0: `metricsActor` is now required; `FlushWorker` removed.
 @MainActor
 @Observable
 public final class PersistentMetricsStorage: MetricsStorage, Sendable {
     private let modelContainer: ModelContainer
+    private let metricsActor: MetricsStoreActor
     private let batchSize: Int
     private let flushInterval: TimeInterval
     private var buffer: [MetricEntry] = []
     @ObservationIgnored private nonisolated(unsafe) var flushTask: Task<Void, Never>?
     private var knownIdentifiers: Set<MetricIdentifier> = []
-    private let flushWorker: FlushWorker
 
-    /// Creates a persistent storage backed by the given model container.
+    /// Creates a persistent storage backed by the given actor.
     ///
     /// - Parameters:
-    ///   - modelContainer: The SwiftData container to persist metrics into.
+    ///   - metricsActor: All SwiftData **writes** are serialized through this actor's
+    ///     single `ModelContext`. Must be the same actor shared by ``MetricsDatabase``
+    ///     and ``RetentionEngine``, and must be backed by `modelContainer`.
+    ///   - modelContainer: The SwiftData container. Used for synchronous `mainContext`
+    ///     reads. Must be the same container the actor was created with.
     ///   - batchSize: Number of entries to buffer before flushing. Defaults to 50.
     ///   - flushInterval: Maximum seconds between flushes. Defaults to 1.0.
     public init(
+        metricsActor: MetricsStoreActor,
         modelContainer: ModelContainer,
         batchSize: Int = 50,
         flushInterval: TimeInterval = 1.0
     ) {
+        self.metricsActor = metricsActor
         self.modelContainer = modelContainer
         self.batchSize = batchSize
         self.flushInterval = flushInterval
-        self.flushWorker = FlushWorker(modelContainer: modelContainer)
         scheduleFlush()
     }
 
@@ -170,50 +182,16 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
         return Array(identifiers)
     }
 
-    public func clear() {
+    public func clear() async {
         buffer.removeAll()
         knownIdentifiers.removeAll()
-
-        let context = modelContainer.mainContext
-        do {
-            try context.delete(model: MetricObservation.self)
-            try context.delete(model: MetricDimension.self)
-            try context.delete(model: MetricRollup.self)
-            try context.delete(model: MetricDefinition.self)
-            try context.save()
-        } catch {
-            // Best effort
-        }
+        try? await metricsActor.clear()
     }
 
-    public func purge(olderThan date: Date) {
+    public func purge(olderThan date: Date) async {
         buffer.removeAll { $0.timestamp < date }
-
-        let context = modelContainer.mainContext
-        let cutoff = date
-        do {
-            try context.delete(
-                model: MetricObservation.self,
-                where: #Predicate { $0.timestamp < cutoff }
-            )
-            try context.save()
-        } catch {
-            // Best effort
-        }
-
-        // Rebuild known identifiers
         knownIdentifiers = Set(buffer.map { MetricIdentifier(entry: $0) })
-        let descriptor = FetchDescriptor<MetricDefinition>()
-        if let defs = try? context.fetch(descriptor) {
-            for def in defs {
-                if let type = MetricType(rawValue: def.typeRawValue) {
-                    knownIdentifiers.insert(
-                        MetricIdentifier(
-                            label: def.label, dimensions: [], type: type
-                        ))
-                }
-            }
-        }
+        try? await metricsActor.purge(olderThan: date)
     }
 
     public var entryCount: Int {
@@ -229,14 +207,14 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
 
     /// Force-flush the current buffer to persistent storage.
     ///
-    /// > Since: 0.7.0 — now `async`. Previously synchronous. Flush work runs on a
-    /// > background actor with a dedicated `ModelContext`.
+    /// > Since: 0.7.0 — now `async`. Previously synchronous.
     public func flushNow() async {
         guard !buffer.isEmpty else { return }
         let entries = buffer
         buffer.removeAll()
 
-        await flushWorker.flush(entries)
+        let dtos = entries.map { MetricObservationDTO(entry: $0) }
+        try? await metricsActor.insert(dtos)
         NotificationCenter.default.post(name: .metricsStoreDidFlush, object: nil)
     }
 
@@ -264,65 +242,5 @@ public final class PersistentMetricsStorage: MetricsStorage, Sendable {
             combined = #Predicate { prev.evaluate($0) && next.evaluate($0) }
         }
         return combined
-    }
-}
-
-// MARK: - FlushWorker
-
-/// Background actor that performs SwiftData inserts with a dedicated `ModelContext`.
-private actor FlushWorker {
-    private let modelContainer: ModelContainer
-
-    init(modelContainer: ModelContainer) {
-        self.modelContainer = modelContainer
-    }
-
-    func flush(_ entries: [MetricEntry]) {
-        let context = ModelContext(modelContainer)
-
-        for entry in entries {
-            let observation = MetricObservation(entry: entry)
-            context.insert(observation)
-
-            // Upsert MetricDefinition
-            let label = entry.label
-            let typeRaw = entry.type.rawValue
-            var defDescriptor = FetchDescriptor<MetricDefinition>(
-                predicate: #Predicate { $0.label == label && $0.typeRawValue == typeRaw }
-            )
-            defDescriptor.fetchLimit = 1
-
-            if let existing = try? context.fetch(defDescriptor).first {
-                existing.lastSeenAt = entry.timestamp
-                existing.totalObservations += 1
-                let dimKeys = Set(entry.dimensions.map(\.0))
-                let existingKeys = Set(
-                    (try? JSONDecoder().decode([String].self, from: Data(existing.knownDimensionKeysJSON.utf8)))
-                        ?? []
-                )
-                let allKeys = existingKeys.union(dimKeys)
-                if let json = try? JSONEncoder().encode(Array(allKeys).sorted()),
-                    let str = String(data: json, encoding: .utf8)
-                {
-                    existing.knownDimensionKeysJSON = str
-                }
-            } else {
-                let dimKeys = entry.dimensions.map(\.0)
-                let json =
-                    (try? JSONEncoder().encode(dimKeys))
-                    .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-                let def = MetricDefinition(
-                    label: entry.label,
-                    typeRawValue: entry.type.rawValue,
-                    knownDimensionKeysJSON: json,
-                    firstSeenAt: entry.timestamp,
-                    lastSeenAt: entry.timestamp,
-                    totalObservations: 1
-                )
-                context.insert(def)
-            }
-        }
-
-        try? context.save()
     }
 }

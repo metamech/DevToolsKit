@@ -19,10 +19,10 @@ public protocol MetricsStorage: Sendable {
     func knownMetrics() -> [MetricIdentifier]
 
     /// Remove all stored entries.
-    func clear()
+    func clear() async
 
     /// Remove entries older than the given date.
-    func purge(olderThan date: Date)
+    func purge(olderThan date: Date) async
 
     /// The total number of stored entries.
     var entryCount: Int { get }

@@ -56,12 +56,12 @@ public final class MetricsManager: Sendable {
     }
 
     /// Clear all stored metrics.
-    public func clear() {
-        storage.clear()
+    public func clear() async {
+        await storage.clear()
     }
 
     /// Purge entries older than the given date.
-    public func purge(olderThan date: Date) {
-        storage.purge(olderThan: date)
+    public func purge(olderThan date: Date) async {
+        await storage.purge(olderThan: date)
     }
 }

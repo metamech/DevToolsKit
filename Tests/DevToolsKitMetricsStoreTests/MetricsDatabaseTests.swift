@@ -42,11 +42,11 @@ struct MetricsDatabaseTests {
         stack.storage.record(MetricEntry(label: "db.query", dimensions: [], type: .timer, value: 1))
         await stack.storage.flushNow()
 
-        let httpMetrics = stack.database.discover(prefix: "http.")
+        let httpMetrics = await stack.database.discover(prefix: "http.")
         #expect(httpMetrics.count == 2)
         #expect(httpMetrics.allSatisfy { $0.label.hasPrefix("http.") })
 
-        let allMetrics = stack.database.discover()
+        let allMetrics = await stack.database.discover()
         #expect(allMetrics.count == 3)
     }
 

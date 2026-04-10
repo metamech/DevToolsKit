@@ -68,10 +68,11 @@ struct RetentionEngineArchiverTests {
         let schema = Schema(MetricsModelTypes.all)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
+        let actor = MetricsStoreActor(modelContainer: container)
         let storage = PersistentMetricsStorage(
-            modelContainer: container, batchSize: 1000, flushInterval: 60
+            metricsActor: actor, modelContainer: container, batchSize: 1000, flushInterval: 60
         )
-        let engine = RetentionEngine(modelContainer: container, policy: policy)
+        let engine = RetentionEngine(metricsActor: actor, policy: policy)
         return (container, storage, engine)
     }
 
@@ -110,7 +111,7 @@ struct RetentionEngineArchiverTests {
         #expect(beforeCount == 2)
 
         // Run maintenance — should delete old entry but not crash with nil archiver
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         let afterCount = (try? context.fetchCount(FetchDescriptor<MetricObservation>())) ?? 0
         // Only recent entry should remain
@@ -160,7 +161,7 @@ struct RetentionEngineArchiverTests {
         #expect(beforeCount == 15)
 
         // Run maintenance
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         // Verify archiver was called with correct reason and count
         let calls = archiver.getCalls()
@@ -201,7 +202,8 @@ struct RetentionEngineArchiverTests {
         let dbURL = tempDir.appendingPathComponent("metrics.store")
         let configWithURL = ModelConfiguration(schema: schema, url: dbURL)
         let container = try ModelContainer(for: schema, configurations: [configWithURL])
-        let engine = RetentionEngine(modelContainer: container, policy: policy)
+        let actor = MetricsStoreActor(modelContainer: container)
+        let engine = RetentionEngine(metricsActor: actor, policy: policy)
 
         // Insert enough rows to exceed size ceiling (~1500 rows)
         let context = container.mainContext
@@ -280,7 +282,7 @@ struct RetentionEngineArchiverTests {
         #expect(beforeCount == 8)
 
         // Run maintenance — should NOT throw despite archiver failures
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         // Deletion should still happen despite archiver throwing
         let remaining = try context.fetch(FetchDescriptor<MetricObservation>())
@@ -331,7 +333,7 @@ struct RetentionEngineArchiverTests {
         try context.save()
 
         // Run maintenance — rollup pass will short-circuit since no completed buckets; focus on TTL purge
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
 
         // Verify archiver was called multiple times with batches ≤ 8,000
         let calls = archiver.getCalls()
@@ -385,7 +387,7 @@ struct RetentionEngineArchiverTests {
         await storage.flushNow()
 
         let startTime = Date()
-        await engine.runMaintenanceCycle()
+        try await engine.runMaintenanceCycle()
         let elapsed = Date().timeIntervalSince(startTime)
 
         // Assert wall time < 30 seconds (generous budget for nightly/manual perf runs).

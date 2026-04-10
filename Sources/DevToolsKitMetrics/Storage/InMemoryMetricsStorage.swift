@@ -110,14 +110,14 @@ public final class InMemoryMetricsStorage: MetricsStorage, Sendable {
         Array(knownIdentifiers)
     }
 
-    public func clear() {
+    public func clear() async {
         entries.removeAll()
         knownIdentifiers.removeAll()
         entriesByIdentifier.removeAll()
         cachedLatestValues.removeAll()
     }
 
-    public func purge(olderThan date: Date) {
+    public func purge(olderThan date: Date) async {
         entries.removeAll { $0.timestamp < date }
         // Rebuild indexes from remaining entries
         knownIdentifiers = Set(entries.map { MetricIdentifier(entry: $0) })

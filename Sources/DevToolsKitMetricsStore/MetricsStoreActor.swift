@@ -68,6 +68,18 @@ public actor MetricsStoreActor {
         label: "devtoolskit.metricsstore.actor"
     )
 
+    // MARK: - Configuration
+
+    /// The on-disk URL of the SwiftData store, or `nil` for in-memory stores.
+    ///
+    /// Used by ``RetentionEngine`` and ``MetricsDatabase`` so they do not need
+    /// to hold their own reference to the ``ModelContainer``.
+    public var dbURL: URL? {
+        modelContainer.configurations.first.flatMap {
+            $0.isStoredInMemoryOnly ? nil : $0.url
+        }
+    }
+
     // MARK: - Query
 
     /// Execute a ``DatabaseQuery`` and return the result.

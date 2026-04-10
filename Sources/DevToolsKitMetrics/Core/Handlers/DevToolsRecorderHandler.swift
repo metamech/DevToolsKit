@@ -5,12 +5,12 @@ import Foundation
 final class DevToolsRecorderHandler: RecorderHandler, @unchecked Sendable {
     private let label: String
     private let dimensions: [(String, String)]
-    private let storage: any MetricsStorage
+    private let batcher: MetricsBatcher
 
-    init(label: String, dimensions: [(String, String)], storage: any MetricsStorage) {
+    init(label: String, dimensions: [(String, String)], batcher: MetricsBatcher) {
         self.label = label
         self.dimensions = dimensions
-        self.storage = storage
+        self.batcher = batcher
     }
 
     func record(_ value: Int64) {
@@ -24,8 +24,6 @@ final class DevToolsRecorderHandler: RecorderHandler, @unchecked Sendable {
             type: .recorder,
             value: value
         )
-        Task { @MainActor in
-            storage.record(entry)
-        }
+        batcher.append(entry)
     }
 }

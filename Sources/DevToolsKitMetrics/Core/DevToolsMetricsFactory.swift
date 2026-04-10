@@ -9,27 +9,35 @@ import CoreMetrics
 /// ```
 public final class DevToolsMetricsFactory: MetricsFactory, @unchecked Sendable {
     private let storage: any MetricsStorage
+    private let batcher: MetricsBatcher
 
     /// Creates a factory backed by the given storage.
     ///
     /// - Parameter storage: The storage backend to record metrics into.
     public init(storage: any MetricsStorage) {
         self.storage = storage
+        self.batcher = MetricsBatcher(storage: storage)
+        self.batcher.start()
+    }
+
+    /// Stops the internal batcher timer and flushes any pending entries.
+    public func stop() {
+        batcher.stop()
     }
 
     public func makeCounter(label: String, dimensions: [(String, String)]) -> CounterHandler {
-        DevToolsCounterHandler(label: label, dimensions: dimensions, storage: storage)
+        DevToolsCounterHandler(label: label, dimensions: dimensions, batcher: batcher)
     }
 
     public func makeFloatingPointCounter(
         label: String,
         dimensions: [(String, String)]
     ) -> FloatingPointCounterHandler {
-        DevToolsFloatingPointCounterHandler(label: label, dimensions: dimensions, storage: storage)
+        DevToolsFloatingPointCounterHandler(label: label, dimensions: dimensions, batcher: batcher)
     }
 
     public func makeMeter(label: String, dimensions: [(String, String)]) -> MeterHandler {
-        DevToolsMeterHandler(label: label, dimensions: dimensions, storage: storage)
+        DevToolsMeterHandler(label: label, dimensions: dimensions, batcher: batcher)
     }
 
     public func makeRecorder(
@@ -37,11 +45,11 @@ public final class DevToolsMetricsFactory: MetricsFactory, @unchecked Sendable {
         dimensions: [(String, String)],
         aggregate: Bool
     ) -> RecorderHandler {
-        DevToolsRecorderHandler(label: label, dimensions: dimensions, storage: storage)
+        DevToolsRecorderHandler(label: label, dimensions: dimensions, batcher: batcher)
     }
 
     public func makeTimer(label: String, dimensions: [(String, String)]) -> TimerHandler {
-        DevToolsTimerHandler(label: label, dimensions: dimensions, storage: storage)
+        DevToolsTimerHandler(label: label, dimensions: dimensions, batcher: batcher)
     }
 
     public func destroyCounter(_ handler: CounterHandler) {}

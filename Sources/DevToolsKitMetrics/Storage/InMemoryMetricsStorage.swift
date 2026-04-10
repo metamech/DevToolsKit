@@ -56,6 +56,12 @@ public final class InMemoryMetricsStorage: MetricsStorage, Sendable {
         }
     }
 
+    public func record(_ entries: [MetricEntry]) {
+        for entry in entries {
+            record(entry)
+        }
+    }
+
     public func query(_ query: MetricsQuery) -> [MetricEntry] {
         var result = entries
 

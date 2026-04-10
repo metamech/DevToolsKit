@@ -13,7 +13,7 @@ struct DevToolsMetricsFactoryTests {
         let handler = factory.makeCounter(label: "test.counter", dimensions: [("env", "test")])
         handler.increment(by: 5)
 
-        try await Task.sleep(for: .milliseconds(50))
+        try await Task.sleep(for: .milliseconds(350))
         #expect(store.entryCount == 1)
         let entry = store.query(MetricsQuery())[0]
         #expect(entry.label == "test.counter")
@@ -28,7 +28,7 @@ struct DevToolsMetricsFactoryTests {
         let handler = factory.makeFloatingPointCounter(label: "test.fp_counter", dimensions: [])
         handler.increment(by: 3.14)
 
-        try await Task.sleep(for: .milliseconds(50))
+        try await Task.sleep(for: .milliseconds(350))
         #expect(store.entryCount == 1)
         let entry = store.query(MetricsQuery())[0]
         #expect(entry.type == .floatingPointCounter)
@@ -42,7 +42,7 @@ struct DevToolsMetricsFactoryTests {
         let handler = factory.makeMeter(label: "test.meter", dimensions: [])
         handler.set(42.0)
 
-        try await Task.sleep(for: .milliseconds(50))
+        try await Task.sleep(for: .milliseconds(350))
         #expect(store.entryCount == 1)
         let entry = store.query(MetricsQuery())[0]
         #expect(entry.type == .meter)
@@ -56,7 +56,7 @@ struct DevToolsMetricsFactoryTests {
         let handler = factory.makeRecorder(label: "test.recorder", dimensions: [], aggregate: true)
         handler.record(Int64(100))
 
-        try await Task.sleep(for: .milliseconds(50))
+        try await Task.sleep(for: .milliseconds(350))
         #expect(store.entryCount == 1)
         let entry = store.query(MetricsQuery())[0]
         #expect(entry.type == .recorder)
@@ -70,7 +70,7 @@ struct DevToolsMetricsFactoryTests {
         let handler = factory.makeTimer(label: "test.timer", dimensions: [])
         handler.recordNanoseconds(1_000_000)
 
-        try await Task.sleep(for: .milliseconds(50))
+        try await Task.sleep(for: .milliseconds(350))
         #expect(store.entryCount == 1)
         let entry = store.query(MetricsQuery())[0]
         #expect(entry.type == .timer)

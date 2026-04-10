@@ -9,6 +9,9 @@ public protocol MetricsStorage: Sendable {
     /// Record a new metric entry.
     func record(_ entry: MetricEntry)
 
+    /// Record multiple metric entries in a single batch.
+    func record(_ entries: [MetricEntry])
+
     /// Query entries matching the given filters.
     func query(_ query: MetricsQuery) -> [MetricEntry]
 
@@ -39,5 +42,11 @@ public protocol MetricsStorage: Sendable {
 extension MetricsStorage {
     public func latestValue(for identifier: MetricIdentifier) -> Double? {
         summary(for: identifier)?.latest
+    }
+
+    public func record(_ entries: [MetricEntry]) {
+        for entry in entries {
+            record(entry)
+        }
     }
 }

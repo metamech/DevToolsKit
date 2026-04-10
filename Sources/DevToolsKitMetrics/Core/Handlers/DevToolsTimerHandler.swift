@@ -5,12 +5,12 @@ import Foundation
 final class DevToolsTimerHandler: TimerHandler, @unchecked Sendable {
     private let label: String
     private let dimensions: [(String, String)]
-    private let storage: any MetricsStorage
+    private let batcher: MetricsBatcher
 
-    init(label: String, dimensions: [(String, String)], storage: any MetricsStorage) {
+    init(label: String, dimensions: [(String, String)], batcher: MetricsBatcher) {
         self.label = label
         self.dimensions = dimensions
-        self.storage = storage
+        self.batcher = batcher
     }
 
     func recordNanoseconds(_ duration: Int64) {
@@ -20,8 +20,6 @@ final class DevToolsTimerHandler: TimerHandler, @unchecked Sendable {
             type: .timer,
             value: Double(duration)
         )
-        Task { @MainActor in
-            storage.record(entry)
-        }
+        batcher.append(entry)
     }
 }

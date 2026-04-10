@@ -8,26 +8,57 @@ import SwiftData
 /// Provides a rich query API including time-bucketed aggregation, streaming
 /// updates, metric discovery, and rate-of-change calculations.
 ///
+/// When a ``MetricsStoreActor`` is injected at init time, all fetch and delete
+/// operations are routed through the actor's single `ModelContext`, preventing
+/// concurrent-context data races (issue #1429).  Without an actor, the
+/// original background-context behavior is preserved for backward compatibility.
+///
 /// > Since: 0.3.0
 /// > Breaking change in 0.7.0: `execute()` is now `async`.
+/// > Breaking change in 0.11.0: `init(storage:modelContainer:metricsActor:)` adds
+/// > optional actor injection.
 @MainActor
 @Observable
 public final class MetricsDatabase: Sendable {
     private let storage: PersistentMetricsStorage
     private let modelContainer: ModelContainer
+    private let metricsActor: MetricsStoreActor?
 
     /// Creates a database facade backed by the given storage and container.
-    public init(storage: PersistentMetricsStorage, modelContainer: ModelContainer) {
+    ///
+    /// - Parameters:
+    ///   - storage: The storage backend that maintains the in-memory flush buffer.
+    ///   - modelContainer: The SwiftData container backing the metrics store.
+    ///   - metricsActor: When non-nil, all fetch operations are routed through
+    ///     the actor's single `ModelContext`, serializing reads against concurrent
+    ///     retention deletes. Pass the same actor used by ``RetentionEngineAdapter``.
+    public init(
+        storage: PersistentMetricsStorage,
+        modelContainer: ModelContainer,
+        metricsActor: MetricsStoreActor? = nil
+    ) {
         self.storage = storage
         self.modelContainer = modelContainer
+        self.metricsActor = metricsActor
     }
 
     /// Execute a ``DatabaseQuery`` and return the result.
     ///
-    /// Query execution runs on a background context for heavy fetches and aggregation.
+    /// When a ``MetricsStoreActor`` was injected at init time, the fetch runs
+    /// on the actor's context, serialized against concurrent retention deletes.
+    /// Otherwise, a new background `ModelContext` is created per call (original
+    /// behavior).
     ///
     /// > Since: 0.7.0 — now `async`. Previously synchronous.
     public func execute(_ query: DatabaseQuery) async -> QueryResult {
+        if let actor = metricsActor {
+            do {
+                return try await actor.execute(query, unflushedEntries: storage.unflushedEntries)
+            } catch {
+                return QueryResult(rows: [])
+            }
+        }
+        // Fallback: original behavior — new background context per call.
         do {
             return try await QueryExecutor.execute(
                 query, modelContainer: modelContainer,
@@ -44,7 +75,6 @@ public final class MetricsDatabase: Sendable {
     /// ``Notification.Name.metricsStoreDidFlush`` notification.
     public func stream(_ query: DatabaseQuery) -> AsyncStream<QueryResult> {
         AsyncStream { continuation in
-            // Emit initial result
             let initial = Task { @MainActor [weak self] in
                 guard let self else { return }
                 let result = await self.execute(query)
@@ -133,17 +163,7 @@ public final class MetricsDatabase: Sendable {
         return observations.count
     }
 
-    /// Runs PRAGMA wal_checkpoint(TRUNCATE) then VACUUM on the store file.
-    ///
-    /// Runs `wal_checkpoint(RESTART)` on the store file via a raw sqlite3 handle.
-    ///
-    /// Flushes pending SwiftData writes first, then issues the checkpoint.
-    /// RESTART folds WAL frames into the main file and resets the WAL write
-    /// position without requiring zero active readers, so it succeeds while
-    /// SwiftData's `ModelContainer` connection remains open.
-    ///
-    /// Physical file shrinkage (VACUUM) is deferred to the next app launch;
-    /// see ``MetricsStack/create(inMemory:retentionPolicy:batchSize:)``.
+    /// Runs PRAGMA wal_checkpoint(RESTART) then VACUUM on the store file.
     public func checkpointAndVacuum() throws {
         guard let config = modelContainer.configurations.first,
               !config.isStoredInMemoryOnly
@@ -153,11 +173,6 @@ public final class MetricsDatabase: Sendable {
     }
 
     /// Calculate the rate of change per second for a metric over the given interval.
-    ///
-    /// - Parameters:
-    ///   - label: The metric label.
-    ///   - interval: The time window to measure rate over.
-    /// - Returns: The rate (change per second), or `nil` if insufficient data.
     public func rate(label: String, over interval: TimeInterval) -> Double? {
         let now = Date()
         let start = now.addingTimeInterval(-interval)

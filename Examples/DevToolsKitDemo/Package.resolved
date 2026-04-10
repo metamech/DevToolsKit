@@ -1,0 +1,42 @@
+{
+  "originHash" : "1d399f43932fd3ba5ffaef1abdadd9e5e967959babc1b6519e562ff9ec844714",
+  "pins" : [
+    {
+      "identity" : "licenseseat-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/licenseseat/licenseseat-swift.git",
+      "state" : {
+        "revision" : "6149935016228b70631d805cb512e11c4cf335ad",
+        "version" : "0.4.1"
+      }
+    },
+    {
+      "identity" : "swift-crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-crypto.git",
+      "state" : {
+        "revision" : "60f13f60c4d093691934dc6cfdf5f508ada1f894",
+        "version" : "2.6.0"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "bbd81b6725ae874c69e9b8c8804d462356b55523",
+        "version" : "1.10.1"
+      }
+    },
+    {
+      "identity" : "swift-metrics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-metrics.git",
+      "state" : {
+        "revision" : "f17c111cec972c2a4922cef38cf64f76f7e87886",
+        "version" : "2.8.0"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -333,9 +333,17 @@ public actor MetricsStoreActor {
             guard !batch.isEmpty else { break }
 
             if let archiver {
-                nonisolated(unsafe) let toArchive = batch
+                let snapshots = batch.map { obs in
+                    ArchivedObservation(
+                        timestamp: obs.timestamp,
+                        label: obs.label,
+                        typeRawValue: obs.typeRawValue,
+                        value: obs.value,
+                        dimensions: obs.dimensions.map { ($0.key, $0.value) }
+                    )
+                }
                 do {
-                    try await archiver.archive(observations: toArchive, reason: .sizeCap)
+                    try await archiver.archive(observations: snapshots, reason: .sizeCap)
                 } catch {
                     Self.logger.warning(
                         "RetentionArchiver failed during size-cap purge — deletion will proceed",
@@ -370,9 +378,17 @@ public actor MetricsStoreActor {
             let batch = (try? modelContext.fetch(descriptor)) ?? []
             guard !batch.isEmpty else { break }
 
-            nonisolated(unsafe) let toArchive = batch
+            let snapshots = batch.map { obs in
+                ArchivedObservation(
+                    timestamp: obs.timestamp,
+                    label: obs.label,
+                    typeRawValue: obs.typeRawValue,
+                    value: obs.value,
+                    dimensions: obs.dimensions.map { ($0.key, $0.value) }
+                )
+            }
             do {
-                try await archiver?.archive(observations: toArchive, reason: .ttl)
+                try await archiver?.archive(observations: snapshots, reason: .ttl)
             } catch {
                 Self.logger.warning(
                     "RetentionArchiver failed during TTL purge — deletion will proceed",

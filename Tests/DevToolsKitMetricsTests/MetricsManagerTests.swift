@@ -41,14 +41,14 @@ struct MetricsManagerTests {
         #expect(manager.totalEntries == 2)
     }
 
-    @Test func clearDelegatesToStorage() {
+    @Test func clearDelegatesToStorage() async {
         let store = InMemoryMetricsStorage()
         store.record(MetricEntry(label: "test", dimensions: [], type: .counter, value: 1))
 
         let manager = MetricsManager(storage: store)
         #expect(manager.totalEntries == 1)
 
-        manager.clear()
+        await manager.clear()
         #expect(manager.totalEntries == 0)
     }
 

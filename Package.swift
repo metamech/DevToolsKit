@@ -76,6 +76,10 @@ let package = Package(
             name: "DevToolsKitPalette",
             targets: ["DevToolsKitPalette"]
         ),
+        .library(
+            name: "DevToolsKitFeatureFlags",
+            targets: ["DevToolsKitFeatureFlags"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
@@ -112,9 +116,20 @@ let package = Package(
             ]
         ),
         .target(
+            name: "DevToolsKitFeatureFlags",
+            dependencies: [
+                "DevToolsKit",
+                .product(name: "Metrics", package: "swift-metrics"),
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .target(
             name: "DevToolsKitLicensing",
             dependencies: [
                 "DevToolsKit",
+                "DevToolsKitFeatureFlags",
                 .product(name: "Metrics", package: "swift-metrics"),
                 .product(name: "WelcomeKit", package: "WelcomeKit"),
             ],
@@ -213,6 +228,13 @@ let package = Package(
         .testTarget(
             name: "DevToolsKitMetricsTests",
             dependencies: ["DevToolsKitMetrics"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        .testTarget(
+            name: "DevToolsKitFeatureFlagsTests",
+            dependencies: ["DevToolsKitFeatureFlags"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

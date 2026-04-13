@@ -20,11 +20,6 @@ struct DiagnosticProviderTests {
         let prefix = "test.\(UUID().uuidString)"
         let manager = LicensingManager(keyPrefix: prefix, backend: backend)
 
-        let flag = FeatureFlagDefinition(
-            id: "test.diag", name: "Diag", description: "Test", category: "Test",
-            defaultEnabled: true)
-        manager.registerFlag(flag)
-
         let result = await manager.collect()
         // Verify we get a Codable value (if it encodes without error, it's valid)
         let encoder = JSONEncoder()

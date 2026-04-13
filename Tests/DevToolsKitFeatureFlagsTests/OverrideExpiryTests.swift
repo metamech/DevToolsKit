@@ -1,54 +1,57 @@
 import Foundation
 import Testing
 
-@testable import DevToolsKitLicensing
+@testable import DevToolsKitFeatureFlags
 
 @Suite(.serialized)
 @MainActor
 struct OverrideExpiryTests {
-    @Test func overrideWithTTLShowsExpiry() {
+    private func makeStore() -> FeatureFlagStore {
         let prefix = "test.\(UUID().uuidString)"
-        let backend = MockBackend()
-        let manager = LicensingManager(keyPrefix: prefix, backend: backend)
+        return FeatureFlagStore(
+            overrideStore: UserDefaultsOverrideStore(keyPrefix: prefix)
+        )
+    }
 
-        let flag = FeatureFlagDefinition(
+    @Test func overrideWithTTLShowsExpiry() {
+        let store = makeStore()
+
+        let flag = FeatureFlag(
             id: "test.ttl", name: "TTL", description: "Test", category: "Test",
             defaultEnabled: false)
-        manager.registerFlag(flag)
+        store.register(flag)
 
-        manager.setOverride(true, for: "test.ttl", expiresAfter: .seconds(3600))
-        let state = manager.flagState(for: "test.ttl")
+        store.setOverride(true, for: "test.ttl", expiresAfter: .seconds(3600))
+        let state = store.state(for: "test.ttl")
         #expect(state?.isOverridden == true)
         #expect(state?.overrideExpiresAt != nil)
     }
 
     @Test func permanentOverrideHasNoExpiry() {
-        let prefix = "test.\(UUID().uuidString)"
-        let backend = MockBackend()
-        let manager = LicensingManager(keyPrefix: prefix, backend: backend)
+        let store = makeStore()
 
-        let flag = FeatureFlagDefinition(
+        let flag = FeatureFlag(
             id: "test.permanent", name: "Perm", description: "Test", category: "Test",
             defaultEnabled: false)
-        manager.registerFlag(flag)
+        store.register(flag)
 
-        manager.setOverride(true, for: "test.permanent")
-        let state = manager.flagState(for: "test.permanent")
+        store.setOverride(true, for: "test.permanent")
+        let state = store.state(for: "test.permanent")
         #expect(state?.isOverridden == true)
         #expect(state?.overrideExpiresAt == nil)
     }
 
     @Test func expiredOverrideFallsBackToDefault() {
         let prefix = "test.\(UUID().uuidString)"
-        let backend = MockBackend()
-        let manager = LicensingManager(keyPrefix: prefix, backend: backend)
+        let overrideStore = UserDefaultsOverrideStore(keyPrefix: prefix)
+        let store = FeatureFlagStore(overrideStore: overrideStore)
 
-        let flag = FeatureFlagDefinition(
+        let flag = FeatureFlag(
             id: "test.expired", name: "Expired", description: "Test", category: "Test",
             defaultEnabled: false)
-        manager.registerFlag(flag)
+        store.register(flag)
 
-        // Set override with already-expired TTL
+        // Set override with already-expired TTL directly in UserDefaults
         let overrideKey = "\(prefix).featureFlag.override.test.expired"
         let existsKey = "\(prefix).featureFlag.override.test.expired.exists"
         let expiryKey = "\(prefix).featureFlag.override.test.expired.expiresAt"
@@ -57,7 +60,7 @@ struct OverrideExpiryTests {
         UserDefaults.standard.set(
             Date().addingTimeInterval(-10).timeIntervalSince1970, forKey: expiryKey)
 
-        let state = manager.flagState(for: "test.expired")
+        let state = store.state(for: "test.expired")
         #expect(state?.isOverridden == false)
         #expect(state?.isEnabled == false)  // falls back to defaultEnabled
     }

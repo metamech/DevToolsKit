@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import DevToolsKitLicensing
+@testable import DevToolsKitFeatureFlags
 
 @Suite(.serialized)
 @MainActor

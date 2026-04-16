@@ -100,21 +100,18 @@ struct DevToolsTabbedContentView: View {
         Button {
             manager.activeTabbedPanelID = panel.id
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: panel.icon)
-                    .font(.caption)
-                Text(panel.title)
-                    .font(.caption)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                manager.activeTabbedPanelID == panel.id
-                    ? Color.accentColor.opacity(0.15)
-                    : Color.clear,
-                in: RoundedRectangle(cornerRadius: 6)
-            )
+            Image(systemName: panel.icon)
+                .font(.body)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    manager.activeTabbedPanelID == panel.id
+                        ? Color.accentColor.opacity(0.15)
+                        : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 6)
+                )
         }
+        .help(panel.title)
         .buttonStyle(.plain)
         #if os(macOS)
         .contextMenu {

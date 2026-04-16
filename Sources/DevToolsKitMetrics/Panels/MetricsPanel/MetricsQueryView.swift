@@ -67,7 +67,8 @@ struct MetricsQueryView: View {
                     systemImage: "magnifyingglass",
                     description: Text("Run a query to see matching metric entries.")
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 Table(results) {
                     TableColumn("Time") { entry in

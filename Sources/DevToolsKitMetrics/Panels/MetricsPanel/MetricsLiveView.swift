@@ -66,7 +66,8 @@ struct MetricsLiveView: View {
                     systemImage: "chart.bar",
                     description: Text("Metrics will appear here when the app records data via swift-metrics.")
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 List(selection: $selectedIdentifier) {
                     ForEach(displayedGroups, id: \.prefix) { group in
@@ -105,6 +106,12 @@ struct MetricsLiveView: View {
     }
 
     private func loadMetrics() async {
+        isLoading = true
+
+        // Yield so the view renders the ProgressView immediately before
+        // the synchronous data-fetch work blocks the main actor.
+        await Task.yield()
+
         let metrics = metricsManager.filteredMetrics
         let latestValues = metricsManager.latestValues
 

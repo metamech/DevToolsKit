@@ -29,7 +29,8 @@ struct MetricDetailView: View {
                     systemImage: "chart.bar",
                     description: Text("No entries found for this metric.")
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
         }
         .task(id: identifier) {

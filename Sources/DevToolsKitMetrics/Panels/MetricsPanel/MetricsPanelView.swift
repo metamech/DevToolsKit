@@ -41,6 +41,7 @@ public struct MetricsPanelView: View {
                     Text(tab.rawValue).tag(tab)
                 }
             }
+            .labelsHidden()
             .pickerStyle(.segmented)
             .frame(maxWidth: 200)
 

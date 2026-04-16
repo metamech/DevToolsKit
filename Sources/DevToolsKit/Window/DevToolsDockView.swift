@@ -65,21 +65,18 @@ struct DevToolsDockView: View {
                     Button {
                         manager.activeDockPanelID = panel.id
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: panel.icon)
-                                .font(.caption2)
-                            Text(panel.title)
-                                .font(.caption2)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            manager.activeDockPanelID == panel.id
-                                ? Color.accentColor.opacity(0.15)
-                                : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 4)
-                        )
+                        Image(systemName: panel.icon)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                manager.activeDockPanelID == panel.id
+                                    ? Color.accentColor.opacity(0.15)
+                                    : Color.clear,
+                                in: RoundedRectangle(cornerRadius: 4)
+                            )
                     }
+                    .help(panel.title)
                     .buttonStyle(.plain)
                     #if os(macOS)
                     .contextMenu {

@@ -13,10 +13,10 @@ struct MetricsLiveView: View {
         #if os(macOS)
         HSplitView {
             metricsList
-                .frame(minWidth: 250)
+                .frame(minWidth: 250, maxHeight: .infinity)
 
             detailPane
-                .frame(minWidth: 300)
+                .frame(minWidth: 300, maxHeight: .infinity)
         }
         .task(id: refreshID) {
             await loadMetrics()

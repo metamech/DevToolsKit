@@ -132,10 +132,10 @@ struct DevToolsTabbedContentView: View {
             let panel = manager.panel(for: activeID)
         {
             panel.makeBody()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let firstPanel = manager.panels.first {
             firstPanel.makeBody()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onAppear {
                     manager.activeTabbedPanelID = firstPanel.id
                 }
@@ -145,7 +145,7 @@ struct DevToolsTabbedContentView: View {
                 systemImage: "rectangle.3.group",
                 description: Text("Register panels to see them here.")
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

@@ -31,7 +31,7 @@ public struct MetricsPanelView: View {
                 MetricsReportView(metricsManager: metricsManager)
             }
         }
-        .frame(minWidth: 600, minHeight: 400)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var toolbar: some View {

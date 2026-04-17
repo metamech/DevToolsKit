@@ -22,16 +22,18 @@ public struct MetricsPanelView: View {
             toolbar
             Divider()
 
-            switch selectedTab {
-            case .live:
-                MetricsLiveView(metricsManager: metricsManager)
-            case .query:
-                MetricsQueryView(metricsManager: metricsManager)
-            case .report:
-                MetricsReportView(metricsManager: metricsManager)
+            Group {
+                switch selectedTab {
+                case .live:
+                    MetricsLiveView(metricsManager: metricsManager)
+                case .query:
+                    MetricsQueryView(metricsManager: metricsManager)
+                case .report:
+                    MetricsReportView(metricsManager: metricsManager)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var toolbar: some View {

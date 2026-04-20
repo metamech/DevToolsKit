@@ -147,6 +147,38 @@ Or in Xcode: File > Add Package Dependencies, paste the repository URL.
 - [AI Coding Prompts](docs/AI_PROMPTS.md) — Template prompts for AI assistants
 - [Contributing](docs/CONTRIBUTING.md) — Build, test, and submit changes
 
+## Building xcframeworks
+
+Consumers that prefer prebuilt binary frameworks over SPM source can build
+`.xcframework` bundles for any DevToolsKit product. Output lands in
+`Frameworks/` at the repo root.
+
+```
+make frameworks                    # build all products
+make frameworks-licensingseat      # build only DevToolsKitLicensingSeat
+make frameworks-PRODUCT PRODUCT=DevToolsKitLogging
+make frameworks-clean              # remove Frameworks/ and .build/
+```
+
+The script (`Scripts/build-xcframeworks.swift`) clones the configured
+DevToolsKit tag into a temp dir, `swift build`s each product for both
+`arm64` and `x86_64` macOS slices, `lipo`s them into a universal static
+library, and wraps the result in an `.xcframework`. No external tooling
+required beyond a stock Xcode 26 install.
+
+### Bundled licenses
+
+`DevToolsKitLicensingSeat.xcframework` **statically bundles** LicenseSeat
+(via [licenseseat-swift](https://github.com/licenseseat/licenseseat-swift),
+pinned to `0.4.1`). LicenseSeat is an internal implementation detail of the
+xcframework — consumers link only `DevToolsKitLicensingSeat` and must NOT
+separately link a `LicenseSeat.xcframework` or the SPM `LicenseSeat` product
+(duplicate symbols at link time).
+
+LicenseSeat is MIT-licensed; the upstream notice is reproduced verbatim at
+[`Licenses/LicenseSeat-LICENSE.txt`](Licenses/LicenseSeat-LICENSE.txt) and
+must remain alongside any redistribution of this xcframework.
+
 ## License
 
 [MIT](LICENSE) — Copyright (c) 2026 Metamech

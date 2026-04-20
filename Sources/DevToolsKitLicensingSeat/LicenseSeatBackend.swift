@@ -1,6 +1,6 @@
 import DevToolsKitLicensing
 import Foundation
-import LicenseSeat
+internal import LicenseSeat
 
 /// License backend for website-distributed apps using LicenseSeat + LemonSqueezy.
 ///
@@ -59,7 +59,7 @@ public final class LicenseSeatBackend: LicenseBackend, @unchecked Sendable {
 
     public func validate() async throws {
         guard let license = seat.currentLicense() else {
-            throw LicenseSeatStoreError.notConfigured
+            throw LicenseSeatBackendError.notConfigured
         }
         _ = try await seat.validate(licenseKey: license.licenseKey)
         syncStatus()
@@ -105,4 +105,12 @@ public final class LicenseSeatBackend: LicenseBackend, @unchecked Sendable {
         }
         return entitlements
     }
+}
+
+/// Errors thrown by ``LicenseSeatBackend``.
+///
+/// Declared locally so the backing LicenseSeat module does not appear in the
+/// public import surface of `DevToolsKitLicensingSeat`.
+enum LicenseSeatBackendError: Error {
+    case notConfigured
 }

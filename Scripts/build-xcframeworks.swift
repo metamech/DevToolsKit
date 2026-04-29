@@ -79,7 +79,7 @@ let allPackages: [PackageConfig] = [
     PackageConfig(
         name: "DevToolsKit",
         url: "https://github.com/metamech/DevToolsKit.git",
-        version: "0.13.5",
+        version: "0.14.2",
         tagPrefix: "v",
         products: [
             "DevToolsKit",
@@ -397,6 +397,17 @@ func buildForArch(
         "--arch", arch,
         "--target", target,
     ]
+    // Suppress -gmodules (Clang module debug info) so that static archives do not
+    // embed DW_AT_GNU_dwo_name references pointing at .pcm files in the build cache.
+    // These references are machine-local and break downstream consumers that perform
+    // DWARF-level analysis (dwarfdump, dsymutil, LLDB) on the xcframework binaries.
+    // -gno-modules is the correct negation of Clang's -gmodules flag.
+    // The flag is passed both directly (-Xcc) and through the Swift compiler driver
+    // (-Xswiftc -Xcc) because swiftc spawns its own clang invocations for ObjC/C code.
+    args += [
+        "-Xcc", "-gno-modules",
+        "-Xswiftc", "-Xcc", "-Xswiftc", "-gno-modules",
+    ]
     // When libraryEvolution is true and per-target injection hasn't been done,
     // we still use global flags (for packages with no problematic deps).
     if libraryEvolution {
@@ -540,6 +551,14 @@ func assembleFrameworkBundle(
             buildDir: buildDir,
             outputPath: archLib
         )
+        // Remove local (non-exported) symbols from the per-arch archive so that
+        // linker diagnostics for downstream consumers are cleaner. -x retains all
+        // global symbols (including Swift mangled names) and all DWARF debug info;
+        // it only removes Nlist entries with N_EXT clear. This does NOT strip DWARF,
+        // so Swift symbols and type info are preserved for dsymutil / LLDB.
+        // DW_AT_GNU_dwo_name suppression is handled at compile time by -gno-modules
+        // above; this strip pass is a belt-and-suspenders cleanup for the symbol table.
+        try run("/usr/bin/strip", ["-x", archLib])
         archLibPaths.append(archLib)
     }
 

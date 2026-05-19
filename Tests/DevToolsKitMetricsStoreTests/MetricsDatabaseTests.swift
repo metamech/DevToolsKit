@@ -22,6 +22,7 @@ struct MetricsDatabaseTests {
                     label: "test", dimensions: [], type: .counter, value: Double(i + 1)
                 ))
         }
+        await stack.storage._testWaitForPendingAppends()
         await stack.storage.flushNow()
 
         let result = await stack.database.execute(
@@ -40,6 +41,7 @@ struct MetricsDatabaseTests {
         stack.storage.record(MetricEntry(label: "http.req", dimensions: [], type: .counter, value: 1))
         stack.storage.record(MetricEntry(label: "http.err", dimensions: [], type: .counter, value: 1))
         stack.storage.record(MetricEntry(label: "db.query", dimensions: [], type: .timer, value: 1))
+        await stack.storage._testWaitForPendingAppends()
         await stack.storage.flushNow()
 
         let httpMetrics = await stack.database.discover(prefix: "http.")
@@ -60,6 +62,8 @@ struct MetricsDatabaseTests {
                     label: "latency", dimensions: [], type: .timer, value: v
                 ))
         }
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let summary = stack.database.summary(for: "latency")
         #expect(summary != nil)
@@ -70,11 +74,13 @@ struct MetricsDatabaseTests {
     }
 
     @Test
-    func summaryForLabelWithType() throws {
+    func summaryForLabelWithType() async throws {
         let stack = try makeStack()
 
         stack.storage.record(MetricEntry(label: "m", dimensions: [], type: .counter, value: 5))
         stack.storage.record(MetricEntry(label: "m", dimensions: [], type: .timer, value: 100))
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let counterSummary = stack.database.summary(for: "m", type: .counter)
         #expect(counterSummary?.count == 1)
@@ -82,7 +88,7 @@ struct MetricsDatabaseTests {
     }
 
     @Test
-    func rateCalculation() throws {
+    func rateCalculation() async throws {
         let stack = try makeStack()
         let now = Date()
 
@@ -97,6 +103,8 @@ struct MetricsDatabaseTests {
                     value: Double(i * 10)
                 ))
         }
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let rate = stack.database.rate(label: "counter", over: 30)
         #expect(rate != nil)
@@ -104,13 +112,15 @@ struct MetricsDatabaseTests {
     }
 
     @Test
-    func rateWithInsufficientData() throws {
+    func rateWithInsufficientData() async throws {
         let stack = try makeStack()
 
         stack.storage.record(
             MetricEntry(
                 label: "single", dimensions: [], type: .counter, value: 5
             ))
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let rate = stack.database.rate(label: "single", over: 60)
         #expect(rate == nil)
@@ -124,6 +134,7 @@ struct MetricsDatabaseTests {
             MetricEntry(
                 label: "streamed", dimensions: [], type: .counter, value: 42
             ))
+        await stack.storage._testWaitForPendingAppends()
         await stack.storage.flushNow()
 
         let stream = stack.database.stream(

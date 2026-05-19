@@ -12,7 +12,7 @@ struct RateCalculationTests {
     }
 
     @Test
-    func steadyRate() throws {
+    func steadyRate() async throws {
         let stack = try makeStack()
         let now = Date()
 
@@ -27,6 +27,9 @@ struct RateCalculationTests {
                     value: Double(i * 10)
                 ))
         }
+        // record() is fire-and-forget — wait for entries to reach the buffer, then flush
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let rate = stack.database.rate(label: "steady", over: 30)
         #expect(rate != nil)
@@ -41,7 +44,7 @@ struct RateCalculationTests {
     }
 
     @Test
-    func singlePointReturnsNil() throws {
+    func singlePointReturnsNil() async throws {
         let stack = try makeStack()
 
         stack.storage.record(
@@ -51,13 +54,15 @@ struct RateCalculationTests {
                 type: .counter,
                 value: 42
             ))
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let rate = stack.database.rate(label: "single", over: 60)
         #expect(rate == nil)
     }
 
     @Test
-    func decreasingRate() throws {
+    func decreasingRate() async throws {
         let stack = try makeStack()
         let now = Date()
 
@@ -72,6 +77,8 @@ struct RateCalculationTests {
                     value: Double(100 - i * 20)
                 ))
         }
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
 
         let rate = stack.database.rate(label: "decreasing", over: 30)
         #expect(rate != nil)

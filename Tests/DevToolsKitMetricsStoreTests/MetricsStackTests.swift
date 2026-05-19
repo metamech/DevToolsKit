@@ -37,6 +37,11 @@ struct MetricsStackTests {
                 value: 42
             ))
 
+        // record() is fire-and-forget — wait for the entry to reach the BufferActor,
+        // then flush so it lands in SwiftData before querying.
+        await stack.storage._testWaitForPendingAppends()
+        await stack.storage.flushNow()
+
         let result = await stack.database.execute(
             DatabaseQuery(
                 labelFilter: .exact("e2e.test")
@@ -59,8 +64,10 @@ struct MetricsStackTests {
                 ))
         }
 
-        // Wait for async batch flushes to complete
-        try await Task.sleep(for: .milliseconds(100))
+        // Wait for async batch flushes to complete — batchSize=5 so two auto-flush
+        // Tasks are triggered. Give them time to complete.
+        await stack.storage._testWaitForPendingAppends()
+        try await Task.sleep(for: .milliseconds(200))
 
         let result = await stack.database.execute(
             DatabaseQuery(

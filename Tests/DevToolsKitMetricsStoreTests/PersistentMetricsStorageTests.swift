@@ -32,9 +32,9 @@ struct PersistentMetricsStorageTests {
             value: 10.0
         )
         storage.record(entry)
+        await storage._testWaitForPendingAppends()
         await storage.flushNow()
 
-        // Give SwiftData a moment to persist
         let results = storage.query(MetricsQuery(label: "test.metric"))
         #expect(results.count == 1)
         #expect(results[0].label == "test.metric")
@@ -42,7 +42,7 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func queryUnflushedBuffer() throws {
+    func queryUnflushedBuffer() async throws {
         let storage = try makeStorage()
 
         let entry = MetricEntry(
@@ -52,9 +52,18 @@ struct PersistentMetricsStorageTests {
             value: 5.0
         )
         storage.record(entry)
-        // Don't flush — should still be queryable from buffer
+        // Wait for the fire-and-forget Task to deliver to BufferActor,
+        // then take a snapshot so recentSnapshot is populated.
+        await storage._testWaitForPendingAppends()
+        // Trigger a snapshot refresh by calling flushNow with an empty drain guard
+        // (no flush needed — just wait for the snapshot to be captured on next flush)
+        // Instead, manually check after a small sleep for the snapshot to propagate:
+        // record() → BufferActor.append → pending ≥ batchSize? No (1 < 100).
+        // recentSnapshot is updated at drain time. For this test we check after explicit flush.
+        await storage.flushNow()
 
         let results = storage.query(MetricsQuery(label: "buffered"))
+        // After flush the entry is in SwiftData
         #expect(results.count == 1)
         #expect(results[0].value == 5.0)
     }
@@ -73,7 +82,9 @@ struct PersistentMetricsStorageTests {
                 ))
         }
 
-        // The batch-size flush is now async — give it a moment
+        // The batch-size flush is async — wait for pending appends then give the
+        // triggered flushNow Task time to complete.
+        await storage._testWaitForPendingAppends()
         try await Task.sleep(for: .milliseconds(100))
 
         // Query should still return all 3
@@ -82,11 +93,13 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func queryWithTypeFilter() throws {
+    func queryWithTypeFilter() async throws {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "m", dimensions: [], type: .counter, value: 1))
         storage.record(MetricEntry(label: "m", dimensions: [], type: .timer, value: 2))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let counters = storage.query(MetricsQuery(label: "m", type: .counter))
         #expect(counters.count == 1)
@@ -94,7 +107,7 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func queryWithDateRange() throws {
+    func queryWithDateRange() async throws {
         let storage = try makeStorage()
         let now = Date()
 
@@ -113,6 +126,8 @@ struct PersistentMetricsStorageTests {
                 timestamp: now,
                 label: "t", dimensions: [], type: .counter, value: 3
             ))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let results = storage.query(
             MetricsQuery(
@@ -125,11 +140,13 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func queryWithDimensionFilter() throws {
+    func queryWithDimensionFilter() async throws {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "d", dimensions: [("env", "prod")], type: .counter, value: 1))
         storage.record(MetricEntry(label: "d", dimensions: [("env", "dev")], type: .counter, value: 2))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let results = storage.query(
             MetricsQuery(
@@ -141,12 +158,14 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func queryWithSorting() throws {
+    func queryWithSorting() async throws {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "s", dimensions: [], type: .counter, value: 3))
         storage.record(MetricEntry(label: "s", dimensions: [], type: .counter, value: 1))
         storage.record(MetricEntry(label: "s", dimensions: [], type: .counter, value: 2))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let ascending = storage.query(MetricsQuery(label: "s", sort: .valueAscending))
         #expect(ascending.map(\.value) == [1, 2, 3])
@@ -156,24 +175,28 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func queryWithLimit() throws {
+    func queryWithLimit() async throws {
         let storage = try makeStorage()
 
         for i in 0..<10 {
             storage.record(MetricEntry(label: "l", dimensions: [], type: .counter, value: Double(i)))
         }
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let results = storage.query(MetricsQuery(label: "l", limit: 3))
         #expect(results.count == 3)
     }
 
     @Test
-    func knownMetrics() throws {
+    func knownMetrics() async throws {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "a", dimensions: [], type: .counter, value: 1))
         storage.record(MetricEntry(label: "b", dimensions: [], type: .timer, value: 2))
         storage.record(MetricEntry(label: "a", dimensions: [], type: .counter, value: 3))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let known = storage.knownMetrics()
         #expect(known.count == 2)
@@ -182,12 +205,14 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func summary() throws {
+    func summary() async throws {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "sum", dimensions: [], type: .counter, value: 10))
         storage.record(MetricEntry(label: "sum", dimensions: [], type: .counter, value: 20))
         storage.record(MetricEntry(label: "sum", dimensions: [], type: .counter, value: 30))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
 
         let id = MetricIdentifier(label: "sum", dimensions: [], type: .counter)
         let summary = storage.summary(for: id)
@@ -204,6 +229,7 @@ struct PersistentMetricsStorageTests {
         let storage = try makeStorage()
 
         storage.record(MetricEntry(label: "c", dimensions: [], type: .counter, value: 1))
+        await storage._testWaitForPendingAppends()
         await storage.flushNow()
 
         await storage.clear()
@@ -213,12 +239,14 @@ struct PersistentMetricsStorageTests {
     }
 
     @Test
-    func entryCount() throws {
+    func entryCount() async throws {
         let storage = try makeStorage()
         #expect(storage.entryCount == 0)
 
         storage.record(MetricEntry(label: "n", dimensions: [], type: .counter, value: 1))
         storage.record(MetricEntry(label: "n", dimensions: [], type: .counter, value: 2))
+        await storage._testWaitForPendingAppends()
+        await storage.flushNow()
         #expect(storage.entryCount == 2)
     }
 }

@@ -101,7 +101,26 @@ public actor MetricsStoreActor {
     ///
     /// Each DTO is converted to a ``MetricObservation`` + ``MetricDimension``
     /// graph and upserted alongside the ``MetricDefinition`` registry.
+    ///
+    /// This is a thin shim over ``insertBatched(_:)`` for backward compatibility.
     public func insert(_ dtos: [MetricObservationDTO]) throws {
+        try insertBatched(dtos)
+    }
+
+    /// Persist a batch of ``MetricObservationDTO`` values using a batched-per-key strategy.
+    ///
+    /// Groups DTOs by `(label, typeRawValue)` key and performs **one** `FetchDescriptor`
+    /// per distinct key rather than one per DTO. For a flush of 1 000 observations with
+    /// 10 distinct labels this reduces SwiftData fetches from 1 000 to 10.
+    ///
+    /// All observations are inserted and definitions are upserted in a single
+    /// `modelContext.save()` call.
+    ///
+    /// > Since: 0.15.0
+    public func insertBatched(_ dtos: [MetricObservationDTO]) throws {
+        guard !dtos.isEmpty else { return }
+
+        // Step 1: Insert all observations (same as before, no per-DTO fetch needed here)
         for dto in dtos {
             let dims = dto.dimensions.map { MetricDimension(key: $0.0, value: $0.1) }
             let obs = MetricObservation(
@@ -114,8 +133,26 @@ public actor MetricsStoreActor {
                 dimensions: dims
             )
             modelContext.insert(obs)
-            upsertDefinition(label: dto.label, typeRawValue: dto.typeRawValue, dto: dto)
         }
+
+        // Step 2: Group DTOs by (label, typeRawValue) — one definition upsert per key
+        struct DefinitionKey: Hashable {
+            let label: String
+            let typeRawValue: String
+        }
+
+        var groups: [DefinitionKey: [MetricObservationDTO]] = [:]
+        for dto in dtos {
+            let key = DefinitionKey(label: dto.label, typeRawValue: dto.typeRawValue)
+            groups[key, default: []].append(dto)
+        }
+
+        // Step 3: One FetchDescriptor per distinct key, then upsert definition
+        for (key, groupDTOs) in groups {
+            upsertDefinitionBatched(label: key.label, typeRawValue: key.typeRawValue, dtos: groupDTOs)
+        }
+
+        // Step 4: Single save for the entire batch
         try modelContext.save()
     }
 
@@ -224,6 +261,60 @@ public actor MetricsStoreActor {
     #endif
 
     // MARK: - Private helpers
+
+    /// Upsert a single ``MetricDefinition`` for a group of DTOs sharing the same `(label, typeRawValue)` key.
+    ///
+    /// One `FetchDescriptor` fetch per call, regardless of how many DTOs are in `dtos`.
+    private func upsertDefinitionBatched(
+        label: String,
+        typeRawValue: String,
+        dtos: [MetricObservationDTO]
+    ) {
+        guard !dtos.isEmpty else { return }
+
+        let lbl = label
+        let typeRaw = typeRawValue
+        var defDescriptor = FetchDescriptor<MetricDefinition>(
+            predicate: #Predicate { $0.label == lbl && $0.typeRawValue == typeRaw }
+        )
+        defDescriptor.fetchLimit = 1
+
+        // Aggregate values across all DTOs in this group
+        let groupCount = dtos.count
+        let allDimKeys = dtos.flatMap { $0.dimensions.map(\.0) }
+        let latestTimestamp = dtos.max(by: { $0.timestamp < $1.timestamp })?.timestamp ?? Date()
+
+        if let existing = try? modelContext.fetch(defDescriptor).first {
+            existing.lastSeenAt = max(existing.lastSeenAt, latestTimestamp)
+            existing.totalObservations += groupCount
+            let dimKeys = Set(allDimKeys)
+            let existingKeys = Set(
+                (try? JSONDecoder().decode([String].self, from: Data(existing.knownDimensionKeysJSON.utf8)))
+                    ?? []
+            )
+            let allKeys = existingKeys.union(dimKeys)
+            if let json = try? JSONEncoder().encode(Array(allKeys).sorted()),
+               let str = String(data: json, encoding: .utf8)
+            {
+                existing.knownDimensionKeysJSON = str
+            }
+        } else {
+            let dimKeys = Array(Set(allDimKeys)).sorted()
+            let json =
+                (try? JSONEncoder().encode(dimKeys))
+                    .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+            let earliestTimestamp = dtos.min(by: { $0.timestamp < $1.timestamp })?.timestamp ?? latestTimestamp
+            let def = MetricDefinition(
+                label: label,
+                typeRawValue: typeRawValue,
+                knownDimensionKeysJSON: json,
+                firstSeenAt: earliestTimestamp,
+                lastSeenAt: latestTimestamp,
+                totalObservations: groupCount
+            )
+            modelContext.insert(def)
+        }
+    }
 
     private func upsertDefinition(
         label: String,

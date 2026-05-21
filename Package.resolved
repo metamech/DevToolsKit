@@ -1,5 +1,5 @@
 {
-  "originHash" : "610f95577fb16a8cf6f2b2b633c1ab866a415232b72250b39e33f06c1efc57c2",
+  "originHash" : "f951ad3138b3cd1a15eb6aa28efcbb232e351d03c77863ac7f368256ca8b5bd8",
   "pins" : [
     {
       "identity" : "licenseseat-swift",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
       "state" : {
-        "revision" : "bbd81b6725ae874c69e9b8c8804d462356b55523",
-        "version" : "1.10.1"
+        "revision" : "5073617dac96330a486245e4c0179cb0a6fd2256",
+        "version" : "1.12.0"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-metrics.git",
       "state" : {
-        "revision" : "f17c111cec972c2a4922cef38cf64f76f7e87886",
-        "version" : "2.8.0"
+        "revision" : "087e8074afa97040c3b870c8664fe5482fb87cc4",
+        "version" : "2.11.0"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/metamech/SwiftUIFlowTesting.git",
       "state" : {
-        "revision" : "ccea8a696bdb7b9e3061d1e7a675b6d57e3be44a",
-        "version" : "0.1.1"
+        "revision" : "ed291b03b8ac84f32ed48b28828174bb4095cb62",
+        "version" : "0.2.0"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/metamech/WelcomeKit.git",
       "state" : {
-        "revision" : "8eaa4d15e52abcfb330b44617b1f91d97ae57c37",
-        "version" : "0.2.0"
+        "revision" : "c3f868786e4a14f8c86e4d47275cbecb418a0f8c",
+        "version" : "0.3.0"
       }
     }
   ],

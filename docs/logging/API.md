@@ -58,6 +58,8 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
 
 Dispatches to `DevToolsLogStore` via `Task { @MainActor in store.append(entry) }`.
 
+> Since 0.15.1 — implements `LogHandler.log(event:)` (introduced in swift-log 1.11) explicitly. Required when DevToolsKitLogging is consumed as a prebuilt XCFramework; otherwise `MultiplexLogHandler` silently skips this handler because the binary's protocol witness table — fixed at xcframework-build time — is missing the new `log(event:)` witness. See issue #82. The package now requires swift-log 1.11.0 or later.
+
 ### os.Logger Forwarding (since 0.4.0)
 
 When `osLogForwarding` is `true` (the default), all log messages are also forwarded to `os.Logger` so they appear in Console.app. The subsystem is `Bundle.main.bundleIdentifier` and the category is the swift-log label. Messages use `.public` privacy.

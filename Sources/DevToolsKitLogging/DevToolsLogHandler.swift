@@ -48,6 +48,20 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
         set { metadata[key] = newValue }
     }
 
+    /// swift-log ≥ 1.11 calls this directly. Implementing it explicitly (rather
+    /// than relying on the protocol's deprecated default forwarder) is required
+    /// when DevToolsKitLogging is consumed as a prebuilt XCFramework: otherwise
+    /// the binary's protocol witness table — fixed at xcframework-build time —
+    /// is missing the `log(event:)` witness and `MultiplexLogHandler` silently
+    /// skips this handler. See issue #82.
+    public func log(event: LogEvent) {
+        appendEntry(
+            level: event.level,
+            message: event.message,
+            metadata: event.metadata
+        )
+    }
+
     public func log(
         level: Logging.Logger.Level,
         message: Logging.Logger.Message,
@@ -56,6 +70,14 @@ public struct DevToolsLogHandler: LogHandler, @unchecked Sendable {
         file: String,
         function: String,
         line: UInt
+    ) {
+        appendEntry(level: level, message: message, metadata: metadata)
+    }
+
+    private func appendEntry(
+        level: Logging.Logger.Level,
+        message: Logging.Logger.Message,
+        metadata: Logging.Logger.Metadata?
     ) {
         let devLevel = mapLevel(level)
         let mergedMetadata = self.metadata.merging(metadata ?? [:]) { _, new in new }
